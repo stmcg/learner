@@ -1,0 +1,29 @@
+Package: learner
+Type: Package
+Title: Latent Space-Based Transfer Learning
+Version: 0.1.0
+Authors@R: c(person("Sean", "McGrath", role = c("aut", "cre"), 
+                     email = "sean_mcgrath@g.harvard.edu",
+                     comment = c(ORCID = "0000-0002-7281-3516")),
+              person("Cenhao", "Zhu", role = c("aut"),
+                      email = "cenhao.zhu@gmail.com"),
+              person("Rui", "Duan", role = c("aut"), 
+                      email = "rduan@hsph.harvard.edu"))
+Maintainer: Sean McGrath <sean_mcgrath@g.harvard.edu>
+Description: Implements methods to estimate a low rank matrix in an 
+    underrepresented target population from multi-source data. These methods 
+    leverage similarity in the latent row and column spaces between the source 
+    and target populations to improve estimation in the target population. 
+    The methods include the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) 
+    method and the direct projection LEARNER (D-LEARNER) method described
+    by McGrath et al. (in preparation).
+License: GPL (>=3)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
+Imports: doParallel, foreach, ScreeNOT
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Depends: 
+    R (>= 2.10)

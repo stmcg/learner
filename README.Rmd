@@ -1,0 +1,84 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  out.width = "100%"
+)
+```
+
+<!-- badges: start -->
+  [![R-CMD-check](https://github.com/stmcg/learner/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/stmcg/learner/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
+# learner
+
+The `learner` package implements methods to estimate a low rank matrix in an underrepresented target population from multi-source data. These methods leverage similarity in the latent row and column spaces between the source and target populations to improve estimation in the target population. The methods include the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) method and the direct projection LEARNER (D-LEARNER) method described by McGrath et al. (in preparation).
+
+## Installation
+
+You can install the development version of `learner` from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("stmcg/learner")
+```
+
+## Example
+
+We illustrate an example of how `learner` can be used. We first load the package.
+```{r}
+library(learner)
+```
+
+In this illustration, we will use one of the toy data sets in the package (`dat_highsim`) that has a high degree of similarity between the latent spaces of the source and target populations. The object `dat_highsim` is a list which contains the observed source population data matrix `Y_source` and the target population data matrix `Y_target`. As these data were simulated, the true values of the matrices are stored in `dat_highsim` (see `Theta_source` and `Theta_target`).
+
+#### LEARNER Method
+
+We can apply the LEARNER method via the `learner` function. 
+
+This method allows for flexible patterns of heterogeneity across the source and target populations. It consequently requires specifying the tuning parameters `lambda_1` and `lambda_2` which control the degree of transfer learning between the populations. These values can be selected based on cross-validation via the `cv.learner` function. For example, we can specify candidate values of 1, 10, and 100 for `lambda_1` and `lambda_2` and select the optimal values based on cross-validation as follows:
+```{r}
+res_cv.learner <- cv.learner(Y_source = dat_highsim$Y_source, 
+                             Y_target = dat_highsim$Y_target, 
+                             lambda_1_all = c(1, 10, 100), 
+                             lambda_2_all = c(1, 10, 100), 
+                             step_size = 0.003)
+res_cv.learner$lambda_1_min
+res_cv.learner$lambda_2_min
+```
+
+Next, we apply the `learner` function with these values of `lambda_1` and `lambda_2`: 
+```{r}
+res_learner <- learner(Y_source = dat_highsim$Y_source, 
+                       Y_target = dat_highsim$Y_target,
+                       lambda_1 = 100, lambda_2 = 1, 
+                       step_size = 0.003)
+```
+The LEARNER estimate is given by the `learner_estimate` component in the output of the `learner` function, e.g.,
+```{r}
+res_learner$learner_estimate[1:5, 1:5]
+```
+We can check the convergence of the numerical optimization algorithm by plotting the values of the objective function at each iteration:
+```{r, out.width="75%"}
+plot(res_learner$objective_values, 
+     xlab = 'Iteration', ylab = 'Objective function',
+     type = 'l', col = 'blue', lwd = 2)
+```
+
+
+#### D-LEARNER Method
+
+We can apply the D-LEARNER method via the `dlearner` function. This method makes stronger assumptions on the heterogeneity across the source and target populations. It consequently does not rely on choosing tuning parameters. The `dlearner` function can be applied as follows:
+```{r}
+res_dlearner <- dlearner(Y_source = dat_highsim$Y_source, 
+                         Y_target = dat_highsim$Y_target)
+res_dlearner$dlearner_estimate[1:5, 1:5]
+```
+
+
