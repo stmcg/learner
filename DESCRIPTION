@@ -3,7 +3,7 @@ Type: Package
 Title: Latent Space-Based Transfer Learning
 Version: 0.1.0
 Authors@R: c(person("Sean", "McGrath", role = c("aut", "cre"), 
-                     email = "sean_mcgrath@g.harvard.edu",
+                     email = "sean.mcgrath514@gmail.com",
                      comment = c(ORCID = "0000-0002-7281-3516")),
               person("Cenhao", "Zhu", role = c("aut"),
                       email = "cenhao.zhu@gmail.com"),
