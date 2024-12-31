@@ -9,14 +9,13 @@ Authors@R: c(person("Sean", "McGrath", role = c("aut", "cre"),
                       email = "cenhao.zhu@gmail.com"),
               person("Rui", "Duan", role = c("aut"), 
                       email = "rduan@hsph.harvard.edu"))
-Maintainer: Sean McGrath <sean_mcgrath@g.harvard.edu>
-Description: Implements methods to estimate a low rank matrix in an 
-    underrepresented target population from multi-source data. These methods 
-    leverage similarity in the latent row and column spaces between the source 
-    and target populations to improve estimation in the target population. 
-    The methods include the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) 
-    method and the direct projection LEARNER (D-LEARNER) method described
-    by McGrath et al. (2024) <doi:10.48550/arXiv.2412.20605>.
+Maintainer: Sean McGrath <sean.mcgrath514@gmail.com>
+Description: Implements transfer learning methods for low-rank matrix 
+    estimation. These methods leverage similarity in the latent row and column 
+    spaces between the source and target populations to improve estimation in 
+    the target population. The methods include the LatEnt spAce-based tRaNsfer 
+    lEaRning (LEARNER) method and the direct projection LEARNER (D-LEARNER) 
+    method described by McGrath et al. (2024) <doi:10.48550/arXiv.2412.20605>.
 License: GPL (>=3)
 Encoding: UTF-8
 LazyData: true

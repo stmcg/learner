@@ -9,13 +9,12 @@ coverage](https://codecov.io/gh/stmcg/learner/graph/badge.svg)](https://app.code
 
 # learner
 
-The `learner` package implements methods to estimate a low rank matrix
-in an underrepresented target population from multi-source data. These
-methods leverage similarity in the latent row and column spaces between
-the source and target populations to improve estimation in the target
-population. The methods include the LatEnt spAce-based tRaNsfer lEaRning
-(LEARNER) method and the direct projection LEARNER (D-LEARNER) method
-described by [McGrath et
+The `learner` package implements transfer learning methods for low-rank
+matrix estimation. These methods leverage similarity in the latent row
+and column spaces between the source and target populations to improve
+estimation in the target population. The methods include the LatEnt
+spAce-based tRaNsfer lEaRning (LEARNER) method and the direct projection
+LEARNER (D-LEARNER) method described by [McGrath et
 al. (2024)](https://doi.org/10.48550/arXiv.2412.20605).
 
 ## Installation
@@ -42,8 +41,8 @@ package (`dat_highsim`) that has a high degree of similarity between the
 latent spaces of the source and target populations. The object
 `dat_highsim` is a list which contains the observed source population
 data matrix `Y_source` and the target population data matrix `Y_target`.
-As these data were simulated, the true values of the matrices are stored
-in `dat_highsim` (see `Theta_source` and `Theta_target`).
+Since the data was simulated, the true values of the matrices are
+included in `dat_highsim` as `Theta_source` and `Theta_target`.
 
 #### LEARNER Method
 
