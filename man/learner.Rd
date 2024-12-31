@@ -47,7 +47,7 @@ For \eqn{k = 0, 1}, one can view \eqn{Y_k} as a noisy version of \eqn{\Theta_k},
 \strong{Estimation:}
 
 This method estimates \eqn{\Theta_0} by \eqn{\tilde{U}\tilde{V}^{\top}}, where \eqn{(\tilde{U}, \tilde{V})} is the solution to the following optimization problem
-\deqn{\argmin_{U \in \mathbb{R}^{p \times r}, V \in \mathbb{R}^{q \times r}} \big\{ \| U V^{\top} - Y_0 \|_F^2 + \lambda_1\| \mathcal{P}_{\perp}(\hat{U}_{1})U \|_F^2 + \lambda_1\|  \mathcal{P}_{\perp}(\hat{V}_{1})V \|_F^2  + \lambda_2 \| U^{\top} U - V^{\top} V \|_F^2 \big\}}
+\deqn{\mathrm{arg\,min}_{U \in \mathbb{R}^{p \times r}, V \in \mathbb{R}^{q \times r}} \big\{ \| U V^{\top} - Y_0 \|_F^2 + \lambda_1\| \mathcal{P}_{\perp}(\hat{U}_{1})U \|_F^2 + \lambda_1\|  \mathcal{P}_{\perp}(\hat{V}_{1})V \|_F^2  + \lambda_2 \| U^{\top} U - V^{\top} V \|_F^2 \big\}}
 where \eqn{\mathcal{P}_{\perp}(\hat{U}_{1}) = I - \hat{U}_{1}^{\top}\hat{U}_{1}} and \eqn{\mathcal{P}_{\perp}(\hat{V}_{1}) = I - \hat{V}_{1}^{\top}\hat{V}_{1}}.
 
 This function uses an alternating minimization strategy to solve the optimization problem. That is, this approach updates \eqn{U} by minimizing the objective function (via a gradient descent step) treating \eqn{V} as fixed. Then, \eqn{V} is updated treating \eqn{U} as fixed. These updates of \eqn{U} and \eqn{V} are repeated until convergence.
@@ -61,5 +61,6 @@ res <- learner(Y_source = dat_highsim$Y_source,
 }
 \references{
 McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
+
 Donoho, D., Gavish, M. and Romanov, E. (2023). \emph{ScreeNOT: Exact MSE-optimal singular value thresholding in correlated noise}. The Annals of Statistics, 51(1), pp.122-148.
 }
