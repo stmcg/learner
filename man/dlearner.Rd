@@ -11,7 +11,7 @@ dlearner(Y_source, Y_target, r)
 
 \item{Y_target}{matrix containing the target population data}
 
-\item{r}{(optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al., 2023) is applied to the source population knowledge graph to select the rank.}
+\item{r}{(optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al. 2023) is applied to the source population knowledge graph to select the rank.}
 }
 \value{
 A list with the following components:
@@ -19,7 +19,7 @@ A list with the following components:
 \item{r}{rank value used.}
 }
 \description{
-This function applies the Direct project LatEnt spAce-based tRaNsfer lEaRning (D-LEARNER) method (McGrath et al., in preparation) to leverage data from a source population to improve
+This function applies the Direct project LatEnt spAce-based tRaNsfer lEaRning (D-LEARNER) method (McGrath et al. 2024) to leverage data from a source population to improve
 estimation of a low rank matrix in an underrepresented target population.
 }
 \details{

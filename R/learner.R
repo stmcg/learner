@@ -1,11 +1,11 @@
 #' Latent space-based transfer learning
 #'
-#' This function applies the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) method (McGrath et al., in preparation) to leverage data from a source population to improve
+#' This function applies the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) method (McGrath et al. 2024) to leverage data from a source population to improve
 #' estimation of a low rank matrix in an underrepresented target population.
 #'
 #' @param Y_target matrix containing the target population data
 #' @param Y_source matrix containing the source population data
-#' @param r (optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al., 2023) is applied to the source population knowledge graph to select the rank.
+#' @param r (optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al. 2023) is applied to the source population knowledge graph to select the rank.
 #' @param lambda_1 numeric scalar specifying the value of \eqn{\lambda_1} (see Details)
 #' @param lambda_2 numeric scalar specifying the value of \eqn{\lambda_2} (see Details)
 #' @param step_size numeric scalar specifying the step size for the Newton steps in the numerical optimization algorithm
@@ -39,6 +39,7 @@
 #' This function uses an alternating minimization strategy to solve the optimization problem. That is, this approach updates \eqn{U} by minimizing the objective function (via a gradient descent step) treating \eqn{V} as fixed. Then, \eqn{V} is updated treating \eqn{U} as fixed. These updates of \eqn{U} and \eqn{V} are repeated until convergence.
 #'
 #' @references
+#' McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
 #' Donoho, D., Gavish, M. and Romanov, E. (2023). \emph{ScreeNOT: Exact MSE-optimal singular value thresholding in correlated noise}. The Annals of Statistics, 51(1), pp.122-148.
 #'
 #' @examples

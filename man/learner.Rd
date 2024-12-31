@@ -11,7 +11,7 @@ learner(Y_source, Y_target, r, lambda_1, lambda_2, step_size, control = list())
 
 \item{Y_target}{matrix containing the target population data}
 
-\item{r}{(optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al., 2023) is applied to the source population knowledge graph to select the rank.}
+\item{r}{(optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al. 2023) is applied to the source population knowledge graph to select the rank.}
 
 \item{lambda_1}{numeric scalar specifying the value of \eqn{\lambda_1} (see Details)}
 
@@ -33,7 +33,7 @@ A list with the following elements:
 \item{r}{rank value used.}
 }
 \description{
-This function applies the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) method (McGrath et al., in preparation) to leverage data from a source population to improve
+This function applies the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) method (McGrath et al. 2024) to leverage data from a source population to improve
 estimation of a low rank matrix in an underrepresented target population.
 }
 \details{
@@ -60,5 +60,6 @@ res <- learner(Y_source = dat_highsim$Y_source,
 
 }
 \references{
+McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
 Donoho, D., Gavish, M. and Romanov, E. (2023). \emph{ScreeNOT: Exact MSE-optimal singular value thresholding in correlated noise}. The Annals of Statistics, 51(1), pp.122-148.
 }

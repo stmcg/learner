@@ -1,11 +1,11 @@
 #' Latent space-based transfer learning
 #'
-#' This function applies the Direct project LatEnt spAce-based tRaNsfer lEaRning (D-LEARNER) method (McGrath et al., in preparation) to leverage data from a source population to improve
+#' This function applies the Direct project LatEnt spAce-based tRaNsfer lEaRning (D-LEARNER) method (McGrath et al. 2024) to leverage data from a source population to improve
 #' estimation of a low rank matrix in an underrepresented target population.
 #'
 #' @param Y_target matrix containing the target population data
 #' @param Y_source matrix containing the source population data
-#' @param r (optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al., 2023) is applied to the source population knowledge graph to select the rank.
+#' @param r (optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al. 2023) is applied to the source population knowledge graph to select the rank.
 #'
 #' @return A list with the following components:
 #' \item{dlearner_estimate}{matrix containing the D-LEARNER estimate of the target population knowledge graph.}

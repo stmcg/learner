@@ -15,7 +15,8 @@ methods leverage similarity in the latent row and column spaces between
 the source and target populations to improve estimation in the target
 population. The methods include the LatEnt spAce-based tRaNsfer lEaRning
 (LEARNER) method and the direct projection LEARNER (D-LEARNER) method
-described by McGrath et al. (in preparation).
+described by [McGrath et
+al. (2024)](https://doi.org/10.48550/arXiv.2412.20605).
 
 ## Installation
 

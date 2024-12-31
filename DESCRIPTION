@@ -16,7 +16,7 @@ Description: Implements methods to estimate a low rank matrix in an
     and target populations to improve estimation in the target population. 
     The methods include the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) 
     method and the direct projection LEARNER (D-LEARNER) method described
-    by McGrath et al. (in preparation).
+    by McGrath et al. (2024) <doi:10.48550/arXiv.2412.20605>.
 License: GPL (>=3)
 Encoding: UTF-8
 LazyData: true
