@@ -2,6 +2,8 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 <!-- badges: start -->
 
+[![CRAN
+status](https://www.r-pkg.org/badges/version/learner)](https://CRAN.R-project.org/package=learner)
 [![R-CMD-check](https://github.com/stmcg/learner/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/stmcg/learner/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
 coverage](https://codecov.io/gh/stmcg/learner/graph/badge.svg)](https://app.codecov.io/gh/stmcg/learner)
@@ -19,8 +21,15 @@ al. (2024)](https://doi.org/10.48550/arXiv.2412.20605).
 
 ## Installation
 
+You can install the released version of `learner` from
+[CRAN](https://CRAN.R-project.org/package=learner) with:
+
+``` r
+install.packages("learner")
+```
+
 You can install the development version of `learner` from
-[GitHub](https://github.com/) with:
+[GitHub](https://github.com/stmcg/learner) with:
 
 ``` r
 # install.packages("devtools")

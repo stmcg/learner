@@ -13,6 +13,7 @@ knitr::opts_chunk$set(
 ```
 
 <!-- badges: start -->
+[![CRAN status](https://www.r-pkg.org/badges/version/learner)](https://CRAN.R-project.org/package=learner)
 [![R-CMD-check](https://github.com/stmcg/learner/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/stmcg/learner/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/stmcg/learner/graph/badge.svg)](https://app.codecov.io/gh/stmcg/learner)
 <!-- badges: end -->
@@ -23,7 +24,12 @@ The `learner` package implements transfer learning methods for low-rank matrix e
 
 ## Installation
 
-You can install the development version of `learner` from [GitHub](https://github.com/) with:
+You can install the released version of `learner` from [CRAN](https://CRAN.R-project.org/package=learner) with:
+``` r
+install.packages("learner")
+```
+
+You can install the development version of `learner` from [GitHub](https://github.com/stmcg/learner) with:
 
 ``` r
 # install.packages("devtools")
