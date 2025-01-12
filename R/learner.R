@@ -59,6 +59,12 @@ learner <- function(Y_source, Y_target, r, lambda_1, lambda_2, step_size,
   if (any(is.na(Y_source))){
     stop('Y_source cannot have NA values.')
   }
+  if (length(lambda_1) > 1){
+    stop('lambda_1 must be a scalar. See the function cv.learner for selecting a suitable lambda_1 value.')
+  }
+  if (length(lambda_2) > 1){
+    stop('lambda_2 must be a scalar. See the function cv.learner for selecting a suitable lambda_2 value.')
+  }
 
   ## Setting the rank and other parameters
   missing <- any(is.na(Y_target))
