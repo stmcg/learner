@@ -80,8 +80,10 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all, lambda_2_all,
   n_lambda_2 <- length(lambda_2_all)
 
   ## Creating training and testing data sets
-  n_indices <- p * q
-  indices <- sample(1:(p * q), size = n_indices, replace = FALSE)
+  available_indices <- 1:(p * q)
+  available_indices <- available_indices[!(available_indices %in% which(is.na(Y_target)))]
+  n_indices <- length(available_indices)
+  indices <- sample(available_indices, size = n_indices, replace = FALSE)
 
   index_set <- vector(mode = "list", length = n_folds)
   for (fold in 1:n_folds){
