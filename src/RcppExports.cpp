@@ -49,10 +49,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// omp_max_threads
+int omp_max_threads();
+RcppExport SEXP _learner_omp_max_threads() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(omp_max_threads());
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_learner_learner_cpp", (DL_FUNC) &_learner_learner_cpp, 8},
     {"_learner_cv_learner_cpp", (DL_FUNC) &_learner_cv_learner_cpp, 10},
+    {"_learner_omp_max_threads", (DL_FUNC) &_learner_omp_max_threads, 0},
     {NULL, NULL, 0}
 };
 

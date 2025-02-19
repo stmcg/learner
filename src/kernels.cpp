@@ -188,4 +188,13 @@ List cv_learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_ta
   );
 }
 
+// --------------------------------------------------------------
+// [[Rcpp::export]]
+int omp_max_threads() {
+#ifdef _OPENMP
+  return omp_get_max_threads();
+#else
+  return 1;
+#endif
+}
 

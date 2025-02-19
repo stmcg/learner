@@ -9,7 +9,7 @@
 #' @param lambda_2_all vector of numerics specifying the candidate values of \eqn{\lambda_2} (see Details)
 #' @param step_size numeric scalar specifying the step size for the Newton steps in the numerical optimization algorithm, as in \code{\link{learner}}
 #' @param n_folds an integer specify the number of cross-validation folds. The default is \code{4}.
-#' @param n_cores an integer specifying the number of CPU cores in parallelization. Parallelization is performed across the different candidate \eqn{(\lambda_1, \lambda_2)} pairs. The default is \code{1}, i.e., no parallelization.
+#' @param n_cores an integer specifying the number of CPU cores in OpenMP parallelization. Parallelization is performed across the different candidate \eqn{(\lambda_1, \lambda_2)} pairs. The default is \code{1}, i.e., no parallelization.
 #' @param threshold Convergence threshold.
 #' @param max_iter Maximum number of iterations.
 #'

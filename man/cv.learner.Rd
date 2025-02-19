@@ -34,7 +34,7 @@ cv.learner(
 
 \item{threshold}{Convergence threshold.}
 
-\item{n_cores}{an integer specifying the number of CPU cores in parallelization. Parallelization is performed across the different candidate \eqn{(\lambda_1, \lambda_2)} pairs. The default is \code{1}, i.e., no parallelization.}
+\item{n_cores}{an integer specifying the number of CPU cores in OpenMP parallelization. Parallelization is performed across the different candidate \eqn{(\lambda_1, \lambda_2)} pairs. The default is \code{1}, i.e., no parallelization.}
 
 \item{r}{(optional) integer specifying the rank of the knowledge graphs, as in \code{\link{learner}}}
 }

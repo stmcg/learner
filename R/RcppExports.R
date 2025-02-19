@@ -9,3 +9,7 @@ cv_learner_cpp <- function(Y_source, Y_target, lambda1_all, lambda2_all, step_si
     .Call(`_learner_cv_learner_cpp`, Y_source, Y_target, lambda1_all, lambda2_all, step_size, n_folds, max_iter, threshold, n_cores, r)
 }
 
+omp_max_threads <- function() {
+    .Call(`_learner_omp_max_threads`)
+}
+
