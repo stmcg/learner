@@ -8,7 +8,9 @@ Authors@R: c(person("Sean", "McGrath", role = c("aut", "cre"),
               person("Cenhao", "Zhu", role = c("aut"),
                       email = "cenhaoz@mit.edu"),
               person("Rui", "Duan", role = c("aut"), 
-                      email = "rduan@hsph.harvard.edu"))
+                      email = "rduan@hsph.harvard.edu"),
+              person("Ryan", "ODea", role = c("ctb"),
+                     email = "ryanodea@hsph.harvard.edu"))
 Maintainer: Sean McGrath <sean.mcgrath514@gmail.com>
 Description: Implements transfer learning methods for low-rank matrix 
     estimation. These methods leverage similarity in the latent row and column 
@@ -22,7 +24,10 @@ LazyData: true
 RoxygenNote: 7.3.2
 URL: https://github.com/stmcg/learner
 BugReports: https://github.com/stmcg/learner/issues
-Imports: doParallel, foreach, ScreeNOT
+Imports: ScreeNOT,
+         Rcpp (>= 1.0.11),
+         RcppEigen
+LinkingTo: Rcpp, RcppEigen
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

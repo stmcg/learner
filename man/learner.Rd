@@ -2,65 +2,39 @@
 % Please edit documentation in R/learner.R
 \name{learner}
 \alias{learner}
-\title{Latent space-based transfer learning}
+\title{Learner Optimization}
 \usage{
-learner(Y_source, Y_target, r, lambda_1, lambda_2, step_size, control = list())
+learner(
+  Y_source,
+  Y_target,
+  lambda_1,
+  lambda_2,
+  step_size,
+  max_iter = 100,
+  threshold = 0.001,
+  r = 1
+)
 }
 \arguments{
-\item{Y_source}{matrix containing the source population data}
+\item{Y_source}{Matrix containing the source population data.}
 
-\item{Y_target}{matrix containing the target population data}
+\item{Y_target}{Matrix containing the target population data.}
 
-\item{r}{(optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al. 2023) is applied to the source population knowledge graph to select the rank.}
+\item{lambda_1}{Regularization parameter lambda1.}
 
-\item{lambda_1}{numeric scalar specifying the value of \eqn{\lambda_1} (see Details)}
+\item{lambda_2}{Regularization parameter lambda2.}
 
-\item{lambda_2}{numeric scalar specifying the value of \eqn{\lambda_2} (see Details)}
+\item{step_size}{Step size for optimization.}
 
-\item{step_size}{numeric scalar specifying the step size for the Newton steps in the numerical optimization algorithm}
+\item{max_iter}{Maximum number of iterations.}
 
-\item{control}{a list of parameters for controlling the stopping criteria for the numerical optimization algorithm. The list may include the following components:
-\tabular{ll}{
-\code{max_iter} \tab integer specifying the maximum number of iterations \cr
-\code{threshold} \tab numeric scalar specifying a convergence threshold. The algorithm converges when \eqn{|\epsilon_t - \epsilon_{t-1}| < }\code{threshold}, where \eqn{\epsilon_t} denotes the value of the objective function at iteration \eqn{t}. \cr
-\code{max_value} \tab numeric scalar used to specify the maximum value of the objective function allowed before terminating the algorithm. Specifically, the algorithm will terminate if the value of the objective function exceeds \code{max_value}\eqn{\times \epsilon_0}, where \eqn{\epsilon_0} denotes the value of the objective function at the initial point. This is used to prevent unnecessary computation time after the optimization algorithm diverges. \cr}}
+\item{threshold}{Convergence threshold.}
+
+\item{r}{Rank used for the truncated SVD.}
 }
 \value{
-A list with the following elements:
-\item{learner_estimate}{matrix containing the LEARNER estimate of the target population knowledge graph}
-\item{objective_values}{numeric vector containing the values of the objective function at each iteration}
-\item{convergence_criterion}{integer specifying the criterion that was satisfied for terminating the numerical optimization algorithm. A value of 1 indicates the convergence threshold was satisfied; A value of 2 indicates that the maximum number of iterations was satisfied; A value of 3 indicates that the maximum value of the objective function was satisfied.}
-\item{r}{rank value used.}
+A list containing the learner estimate, objective values, convergence criterion, and rank.
 }
 \description{
-This function applies the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) method (McGrath et al. 2024) to leverage data from a source population to improve
-estimation of a low rank matrix in an underrepresented target population.
-}
-\details{
-\strong{Data and notation:}
-
-The data consists of a matrix in the target population \eqn{Y_0 \in \mathbb{R}^{p \times q}} and the source population \eqn{Y_1 \in \mathbb{R}^{p \times q}}.
-Let \eqn{\hat{U}_{k} \hat{\Lambda}_{k} \hat{V}_{k}^{\top}} denote the truncated singular value decomposition (SVD) of \eqn{Y_k}, \eqn{k = 0, 1}.
-
-For \eqn{k = 0, 1}, one can view \eqn{Y_k} as a noisy version of \eqn{\Theta_k}, referred to as the knowledge graph. The target of inference is the target population knowledge graph, \eqn{\Theta_0}.
-
-\strong{Estimation:}
-
-This method estimates \eqn{\Theta_0} by \eqn{\tilde{U}\tilde{V}^{\top}}, where \eqn{(\tilde{U}, \tilde{V})} is the solution to the following optimization problem
-\deqn{\mathrm{arg\,min}_{U \in \mathbb{R}^{p \times r}, V \in \mathbb{R}^{q \times r}} \big\{ \| U V^{\top} - Y_0 \|_F^2 + \lambda_1\| \mathcal{P}_{\perp}(\hat{U}_{1})U \|_F^2 + \lambda_1\|  \mathcal{P}_{\perp}(\hat{V}_{1})V \|_F^2  + \lambda_2 \| U^{\top} U - V^{\top} V \|_F^2 \big\}}
-where \eqn{\mathcal{P}_{\perp}(\hat{U}_{1}) = I - \hat{U}_{1}^{\top}\hat{U}_{1}} and \eqn{\mathcal{P}_{\perp}(\hat{V}_{1}) = I - \hat{V}_{1}^{\top}\hat{V}_{1}}.
-
-This function uses an alternating minimization strategy to solve the optimization problem. That is, this approach updates \eqn{U} by minimizing the objective function (via a gradient descent step) treating \eqn{V} as fixed. Then, \eqn{V} is updated treating \eqn{U} as fixed. These updates of \eqn{U} and \eqn{V} are repeated until convergence.
-}
-\examples{
-res <- learner(Y_source = dat_highsim$Y_source,
-               Y_target = dat_highsim$Y_target,
-               lambda_1 = 1, lambda_2 = 1,
-               step_size = 0.003)
-
-}
-\references{
-McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
-
-Donoho, D., Gavish, M. and Romanov, E. (2023). \emph{ScreeNOT: Exact MSE-optimal singular value thresholding in correlated noise}. The Annals of Statistics, 51(1), pp.122-148.
+Learner Optimization
 }

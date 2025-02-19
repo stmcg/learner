@@ -3,5 +3,6 @@
 export(cv.learner)
 export(dlearner)
 export(learner)
-import(doParallel)
-import(foreach)
+import(RcppEigen)
+importFrom(Rcpp,sourceCpp)
+useDynLib(learner, .registration = TRUE)
