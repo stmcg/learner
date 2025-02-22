@@ -64,6 +64,7 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
 
   int convergence_criterion = 2;
   std::vector<double> obj_values;
+  obj_values.reserve(max_iter);
   for (int iter = 0; iter < max_iter; ++iter) {
     Eigen::MatrixXd U_tilde = U.transpose() * U;
     Eigen::MatrixXd V_tilde = V.transpose() * V;
@@ -109,7 +110,7 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
     }
 
     // Simple convergence check (you might refine this).
-    if (iter > 0 && std::abs(obj - obj_init) < threshold) {
+    if (iter > 0 && std::abs(obj - obj_values[iter - 1]) < threshold) {
       convergence_criterion = 1;
       break;
     }
