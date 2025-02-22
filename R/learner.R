@@ -12,6 +12,7 @@
 #' @param n_cores an integer specifying the number of CPU cores in OpenMP parallelization. Parallelization is performed across the different candidate \eqn{(\lambda_1, \lambda_2)} pairs. The default is \code{1}, i.e., no parallelization.
 #' @param threshold Convergence threshold.
 #' @param max_iter Maximum number of iterations.
+#' @param max_value Numeric scalar used to specify the maximum value of the objective function allowed before terminating the algorithm. Specifically, the algorithm will terminate if the value of the objective function exceeds \code{max_value}\eqn{\times \epsilon_0}, where \eqn{\epsilon_0} denotes the value of the objective function at the initial point. This is used to prevent unnecessary computation time after the optimization algorithm diverges.
 #'
 #' @return A list with the following elements:
 #' \item{lambda_1_min}{value of \eqn{\lambda_1} with the smallest MSE}
@@ -36,7 +37,7 @@
 #'
 #' @export
 cv.learner <- function(Y_source, Y_target, lambda_1_all, lambda_2_all, step_size,
-                       n_folds = 4, max_iter = 100, threshold = 1e-3, n_cores = 1, r) {
+                       n_folds = 4, max_iter = 100, threshold = 1e-3, n_cores = 1, r, max_value = 10) {
   ## Error catching
   if (!identical(dim(Y_source), dim(Y_target))){
     stop('Y_source and Y_target must have the same dimensions')
@@ -52,7 +53,7 @@ cv.learner <- function(Y_source, Y_target, lambda_1_all, lambda_2_all, step_size
   }
 
   result <- cv_learner_cpp(Y_source, Y_target, lambda_1_all, lambda_2_all, step_size,
-                           n_folds, max_iter, threshold, n_cores, r)
+                           n_folds, max_iter, threshold, n_cores, r, max_value)
   return(result)
 }
 
@@ -66,10 +67,11 @@ cv.learner <- function(Y_source, Y_target, lambda_1_all, lambda_2_all, step_size
 #' @param max_iter Maximum number of iterations.
 #' @param threshold Convergence threshold.
 #' @param r Rank used for the truncated SVD.
+#' @param max_value Numeric scalar used to specify the maximum value of the objective function allowed before terminating the algorithm. Specifically, the algorithm will terminate if the value of the objective function exceeds \code{max_value}\eqn{\times \epsilon_0}, where \eqn{\epsilon_0} denotes the value of the objective function at the initial point. This is used to prevent unnecessary computation time after the optimization algorithm diverges.
 #' @return A list containing the learner estimate, objective values, convergence criterion, and rank.
 #' @export
 learner <- function(Y_source, Y_target, lambda_1, lambda_2, step_size,
-                    max_iter = 100, threshold = 1e-3, r) {
+                    max_iter = 100, threshold = 1e-3, r, max_value = 10) {
   ## Error catching
   if (!identical(dim(Y_source), dim(Y_target))){
     stop('Y_source and Y_target must have the same dimensions')
@@ -90,7 +92,7 @@ learner <- function(Y_source, Y_target, lambda_1, lambda_2, step_size,
     r <- max(ScreeNOT::adaptiveHardThresholding(Y = Y_source, k = max_rank)$r, 1)
   }
 
-  result <- learner_cpp(Y_source, Y_target, r, lambda_1, lambda_2, step_size, max_iter, threshold)
+  result <- learner_cpp(Y_source, Y_target, r, lambda_1, lambda_2, step_size, max_iter, threshold, max_value)
   return(result)
 }
 

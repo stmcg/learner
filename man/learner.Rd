@@ -12,7 +12,8 @@ learner(
   step_size,
   max_iter = 100,
   threshold = 0.001,
-  r = 1
+  r,
+  max_value = 10
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ learner(
 \item{threshold}{Convergence threshold.}
 
 \item{r}{Rank used for the truncated SVD.}
+
+\item{max_value}{Numeric scalar used to specify the maximum value of the objective function allowed before terminating the algorithm. Specifically, the algorithm will terminate if the value of the objective function exceeds \code{max_value}\eqn{\times \epsilon_0}, where \eqn{\epsilon_0} denotes the value of the objective function at the initial point. This is used to prevent unnecessary computation time after the optimization algorithm diverges.}
 }
 \value{
 A list containing the learner estimate, objective values, convergence criterion, and rank.

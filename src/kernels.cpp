@@ -17,7 +17,8 @@ using namespace Eigen;
 Eigen::MatrixXd learner_worker(const Eigen::MatrixXd &Y_source,
                                const Eigen::MatrixXd &Y_target,
                                int r, double lambda1, double lambda2,
-                               double step_size, int max_iter, double threshold) {
+                               double step_size, int max_iter, double threshold,
+                               double max_value) {
   int p = Y_source.rows();
   int q = Y_source.cols();
 
@@ -108,6 +109,9 @@ Eigen::MatrixXd learner_worker(const Eigen::MatrixXd &Y_source,
     if (iter > 0 && std::abs(obj - obj_init) < threshold) {
       break;
     }
+    if (iter > 0 && obj > max_value * obj_init) {
+      break;
+    }
     obj_init = obj;
   }
 
@@ -118,8 +122,8 @@ Eigen::MatrixXd learner_worker(const Eigen::MatrixXd &Y_source,
 // Exported learner function.
 // [[Rcpp::export]]
 List learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_target,
-                 int r, double lambda1, double lambda2, double step_size, int max_iter, double threshold) {
-  Eigen::MatrixXd learner_estimate = learner_worker(Y_source, Y_target, r, lambda1, lambda2, step_size, max_iter, threshold);
+                 int r, double lambda1, double lambda2, double step_size, int max_iter, double threshold, double max_value) {
+  Eigen::MatrixXd learner_estimate = learner_worker(Y_source, Y_target, r, lambda1, lambda2, step_size, max_iter, threshold, max_value);
   return List::create(
     Named("learner_estimate") = learner_estimate
   );
@@ -130,7 +134,7 @@ List learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_targe
 List cv_learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_target,
                     const std::vector<double> &lambda1_all, const std::vector<double> &lambda2_all,
                     double step_size, int n_folds, int max_iter, double threshold,
-                    int n_cores, int r) {
+                    int n_cores, int r, double max_value) {
   int p = Y_source.rows();
   int q = Y_source.cols();
   int n_lambda1 = lambda1_all.size();
@@ -163,7 +167,7 @@ List cv_learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_ta
         }
         Eigen::MatrixXd learner_estimate = learner_worker(Y_source, Y_train, r,
                                                           lambda1_all[i], lambda2_all[j],
-                                                                                     step_size, max_iter, threshold);
+                                                                                     step_size, max_iter, threshold, max_value);
         double fold_mse = 0.0;
         for (int idx : index_set[fold]) {
           int row = idx / q;

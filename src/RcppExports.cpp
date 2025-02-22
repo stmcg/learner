@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // learner_cpp
-List learner_cpp(const Eigen::MatrixXd& Y_source, const Eigen::MatrixXd& Y_target, int r, double lambda1, double lambda2, double step_size, int max_iter, double threshold);
-RcppExport SEXP _learner_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP rSEXP, SEXP lambda1SEXP, SEXP lambda2SEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP) {
+List learner_cpp(const Eigen::MatrixXd& Y_source, const Eigen::MatrixXd& Y_target, int r, double lambda1, double lambda2, double step_size, int max_iter, double threshold, double max_value);
+RcppExport SEXP _learner_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP rSEXP, SEXP lambda1SEXP, SEXP lambda2SEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP, SEXP max_valueSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -25,13 +25,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type step_size(step_sizeSEXP);
     Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
-    rcpp_result_gen = Rcpp::wrap(learner_cpp(Y_source, Y_target, r, lambda1, lambda2, step_size, max_iter, threshold));
+    Rcpp::traits::input_parameter< double >::type max_value(max_valueSEXP);
+    rcpp_result_gen = Rcpp::wrap(learner_cpp(Y_source, Y_target, r, lambda1, lambda2, step_size, max_iter, threshold, max_value));
     return rcpp_result_gen;
 END_RCPP
 }
 // cv_learner_cpp
-List cv_learner_cpp(const Eigen::MatrixXd& Y_source, const Eigen::MatrixXd& Y_target, const std::vector<double>& lambda1_all, const std::vector<double>& lambda2_all, double step_size, int n_folds, int max_iter, double threshold, int n_cores, int r);
-RcppExport SEXP _learner_cv_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP lambda1_allSEXP, SEXP lambda2_allSEXP, SEXP step_sizeSEXP, SEXP n_foldsSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP, SEXP n_coresSEXP, SEXP rSEXP) {
+List cv_learner_cpp(const Eigen::MatrixXd& Y_source, const Eigen::MatrixXd& Y_target, const std::vector<double>& lambda1_all, const std::vector<double>& lambda2_all, double step_size, int n_folds, int max_iter, double threshold, int n_cores, int r, double max_value);
+RcppExport SEXP _learner_cv_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP lambda1_allSEXP, SEXP lambda2_allSEXP, SEXP step_sizeSEXP, SEXP n_foldsSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP, SEXP n_coresSEXP, SEXP rSEXP, SEXP max_valueSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -45,7 +46,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< int >::type r(rSEXP);
-    rcpp_result_gen = Rcpp::wrap(cv_learner_cpp(Y_source, Y_target, lambda1_all, lambda2_all, step_size, n_folds, max_iter, threshold, n_cores, r));
+    Rcpp::traits::input_parameter< double >::type max_value(max_valueSEXP);
+    rcpp_result_gen = Rcpp::wrap(cv_learner_cpp(Y_source, Y_target, lambda1_all, lambda2_all, step_size, n_folds, max_iter, threshold, n_cores, r, max_value));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -61,8 +63,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_learner_learner_cpp", (DL_FUNC) &_learner_learner_cpp, 8},
-    {"_learner_cv_learner_cpp", (DL_FUNC) &_learner_cv_learner_cpp, 10},
+    {"_learner_learner_cpp", (DL_FUNC) &_learner_learner_cpp, 9},
+    {"_learner_cv_learner_cpp", (DL_FUNC) &_learner_cv_learner_cpp, 11},
     {"_learner_omp_max_threads", (DL_FUNC) &_learner_omp_max_threads, 0},
     {NULL, NULL, 0}
 };

@@ -14,7 +14,8 @@ cv.learner(
   max_iter = 100,
   threshold = 0.001,
   n_cores = 1,
-  r = 1
+  r,
+  max_value = 10
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ cv.learner(
 \item{n_cores}{an integer specifying the number of CPU cores in OpenMP parallelization. Parallelization is performed across the different candidate \eqn{(\lambda_1, \lambda_2)} pairs. The default is \code{1}, i.e., no parallelization.}
 
 \item{r}{(optional) integer specifying the rank of the knowledge graphs, as in \code{\link{learner}}}
+
+\item{max_value}{Numeric scalar used to specify the maximum value of the objective function allowed before terminating the algorithm. Specifically, the algorithm will terminate if the value of the objective function exceeds \code{max_value}\eqn{\times \epsilon_0}, where \eqn{\epsilon_0} denotes the value of the objective function at the initial point. This is used to prevent unnecessary computation time after the optimization algorithm diverges.}
 }
 \value{
 A list with the following elements:
