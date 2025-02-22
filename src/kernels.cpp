@@ -14,7 +14,7 @@ using namespace Eigen;
 
 //--------------------------------------------------------------
 // Internal worker function: computes the learner estimate - thread safe for OMP
-Eigen::MatrixXd learner_worker(const Eigen::MatrixXd &Y_source,
+List learner_worker(const Eigen::MatrixXd &Y_source,
                                const Eigen::MatrixXd &Y_target,
                                int r, double lambda1, double lambda2,
                                double step_size, int max_iter, double threshold,
@@ -62,6 +62,8 @@ Eigen::MatrixXd learner_worker(const Eigen::MatrixXd &Y_source,
   double U_norm = U.norm();
   double V_norm = V.norm();
 
+  int convergence_criterion = 2;
+  std::vector<double> obj_values;
   for (int iter = 0; iter < max_iter; ++iter) {
     Eigen::MatrixXd U_tilde = U.transpose() * U;
     Eigen::MatrixXd V_tilde = V.transpose() * V;
@@ -98,6 +100,7 @@ Eigen::MatrixXd learner_worker(const Eigen::MatrixXd &Y_source,
         lambda1 * (P_V * V).squaredNorm() +
         lambda2 * (U.transpose() * U - V.transpose() * V).squaredNorm();
     }
+    obj_values.push_back(obj);
 
     if (obj < obj_best) {
       obj_best = obj;
@@ -107,15 +110,21 @@ Eigen::MatrixXd learner_worker(const Eigen::MatrixXd &Y_source,
 
     // Simple convergence check (you might refine this).
     if (iter > 0 && std::abs(obj - obj_init) < threshold) {
+      convergence_criterion = 1;
       break;
     }
     if (iter > 0 && obj > max_value * obj_init) {
+      convergence_criterion = 3;
       break;
     }
     obj_init = obj;
   }
 
-  return U_best * V_best.transpose();
+  return List::create(
+    Named("learner_estimate") = U_best * V_best.transpose(),
+    Named("objective_values") = obj_values,
+    Named("convergence_criterion") = convergence_criterion
+  );
 }
 
 //--------------------------------------------------------------
@@ -123,9 +132,12 @@ Eigen::MatrixXd learner_worker(const Eigen::MatrixXd &Y_source,
 // [[Rcpp::export]]
 List learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_target,
                  int r, double lambda1, double lambda2, double step_size, int max_iter, double threshold, double max_value) {
-  Eigen::MatrixXd learner_estimate = learner_worker(Y_source, Y_target, r, lambda1, lambda2, step_size, max_iter, threshold, max_value);
+  List out = learner_worker(Y_source, Y_target, r, lambda1, lambda2, step_size, max_iter, threshold, max_value);
   return List::create(
-    Named("learner_estimate") = learner_estimate
+    Named("learner_estimate") = out["learner_estimate"],
+    Named("objective_values") = out["objective_values"],
+    Named("convergence_criterion") = out["convergence_criterion"],
+    Named("r") = r
   );
 }
 
@@ -165,9 +177,10 @@ List cv_learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_ta
           int col = idx % q;
           Y_train(row, col) = std::numeric_limits<double>::quiet_NaN();
         }
-        Eigen::MatrixXd learner_estimate = learner_worker(Y_source, Y_train, r,
+        List temp = learner_worker(Y_source, Y_train, r,
                                                           lambda1_all[i], lambda2_all[j],
                                                                                      step_size, max_iter, threshold, max_value);
+        Eigen::MatrixXd learner_estimate = temp["learner_estimate"];
         double fold_mse = 0.0;
         for (int idx : index_set[fold]) {
           int row = idx / q;
