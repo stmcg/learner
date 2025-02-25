@@ -199,8 +199,8 @@ List cv_learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_ta
   mse_all.minCoeff(&minRow, &minCol);
 
   return List::create(
-    Named("lambda1_min") = lambda1_all[minRow],
-                                      Named("lambda2_min") = lambda2_all[minCol],
+    Named("lambda_1_min") = lambda1_all[minRow],
+                                      Named("lambda_2_min") = lambda2_all[minCol],
                                                                         Named("mse_all") = mse_all,
                                                                         Named("r") = r
   );
