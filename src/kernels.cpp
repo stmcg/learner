@@ -22,7 +22,7 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
   int p = Y_source.rows();
   int q = Y_source.cols();
 
-  Eigen::JacobiSVD<Eigen::MatrixXd> svd(Y_source, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::BDCSVD<Eigen::MatrixXd> svd(Y_source, Eigen::ComputeThinU | Eigen::ComputeThinV);
   Eigen::MatrixXd U_full = svd.matrixU();
   Eigen::MatrixXd V_full = svd.matrixV();
   int r_use = std::min(r, static_cast<int>(U_full.cols()));
@@ -35,9 +35,9 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
   Eigen::MatrixXd U = U_trunc * sqrtD;
   Eigen::MatrixXd V = V_trunc * sqrtD;
 
-  // Projection matrices (using truncated basis)
-  Eigen::MatrixXd P_U = Eigen::MatrixXd::Identity(p, p) - U_trunc * U_trunc.transpose();
-  Eigen::MatrixXd P_V = Eigen::MatrixXd::Identity(q, q) - V_trunc * V_trunc.transpose();
+  // Precompute reusable matrices
+  Eigen::MatrixXd U_trunc_T = U_trunc.transpose();
+  Eigen::MatrixXd V_trunc_T = V_trunc.transpose();
 
   // For now, we assume no missing data (perc_nonmissing = 1).
   // double perc_nonmissing = (Y_target.array().isNaN().count() > 0) ? ( (p*q - num_missing) / double(p*q)) : 1.0;
@@ -51,8 +51,8 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
       diff = diff.array().isNaN().select(Eigen::MatrixXd::Zero(diff.rows(), diff.cols()), diff);
     }
     obj_init = diff.squaredNorm() / perc_nonmissing +
-      lambda1 * (P_U * U).squaredNorm() +
-      lambda1 * (P_V * V).squaredNorm() +
+      lambda1 * (U - U_trunc * (U_trunc_T * U)).squaredNorm() +
+      lambda1 * (V - V_trunc * (V_trunc_T * V)).squaredNorm() +
       lambda2 * (U.transpose() * U - V.transpose() * V).squaredNorm();
   }
 
@@ -76,10 +76,10 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
     }
 
     Eigen::MatrixXd grad_U = (2.0 / perc_nonmissing) * (U * V_tilde - adjusted_theta * V)
-      + lambda1 * 2 * P_U * U
+      + lambda1 * 2 * (U - U_trunc * (U_trunc_T * U))
     + lambda2 * 4 * U * (U_tilde - V_tilde);
     Eigen::MatrixXd grad_V = (2.0 / perc_nonmissing) * (V * U_tilde - adjusted_theta.transpose() * U)
-      + lambda1 * 2 * P_V * V
+      + lambda1 * 2 * (V - V_trunc * (V_trunc_T * V))
     + lambda2 * 4 * V * (V_tilde - U_tilde);
 
     double grad_U_norm = grad_U.norm();
@@ -97,8 +97,8 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
         diff = diff.array().isNaN().select(Eigen::MatrixXd::Zero(diff.rows(), diff.cols()), diff);
       }
       obj = diff.squaredNorm() / perc_nonmissing +
-        lambda1 * (P_U * U).squaredNorm() +
-        lambda1 * (P_V * V).squaredNorm() +
+        lambda1 * (U - U_trunc * (U_trunc_T * U)).squaredNorm() +
+        lambda1 * (V - V_trunc * (V_trunc_T * V)).squaredNorm() +
         lambda2 * (U.transpose() * U - V.transpose() * V).squaredNorm();
     }
     obj_values.push_back(obj);
