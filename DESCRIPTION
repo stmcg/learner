@@ -1,16 +1,16 @@
 Package: learner
 Type: Package
 Title: Latent Space-Based Transfer Learning
-Version: 0.2.0
+Version: 1.0.0
 Authors@R: c(person("Sean", "McGrath", role = c("aut", "cre"), 
                      email = "sean.mcgrath514@gmail.com",
                      comment = c(ORCID = "0000-0002-7281-3516")),
+              person("Ryan", "ODea", role = c("aut"),
+                     email = "ryanodea@hsph.harvard.edu")
               person("Cenhao", "Zhu", role = c("aut"),
                       email = "cenhaoz@mit.edu"),
               person("Rui", "Duan", role = c("aut"), 
-                      email = "rduan@hsph.harvard.edu"),
-              person("Ryan", "ODea", role = c("ctb"),
-                     email = "ryanodea@hsph.harvard.edu"))
+                      email = "rduan@hsph.harvard.edu"))
 Maintainer: Sean McGrath <sean.mcgrath514@gmail.com>
 Description: Implements transfer learning methods for low-rank matrix 
     estimation. These methods leverage similarity in the latent row and column 
