@@ -7,20 +7,21 @@
 cv.learner(
   Y_source,
   Y_target,
+  r,
   lambda_1_all,
   lambda_2_all,
   step_size,
   n_folds = 4,
-  max_iter = 100,
-  threshold = 0.001,
   n_cores = 1,
-  r = 1
+  control = list()
 )
 }
 \arguments{
 \item{Y_source}{matrix containing the source population data, as in \code{\link{learner}}}
 
 \item{Y_target}{matrix containing the target population data, as in \code{\link{learner}}}
+
+\item{r}{(optional) integer specifying the rank of the knowledge graphs, as in \code{\link{learner}}}
 
 \item{lambda_1_all}{vector of numerics specifying the candidate values of \eqn{\lambda_1} (see Details)}
 
@@ -30,13 +31,9 @@ cv.learner(
 
 \item{n_folds}{an integer specify the number of cross-validation folds. The default is \code{4}.}
 
-\item{max_iter}{Maximum number of iterations.}
-
-\item{threshold}{Convergence threshold.}
-
 \item{n_cores}{an integer specifying the number of CPU cores in OpenMP parallelization. Parallelization is performed across the different candidate \eqn{(\lambda_1, \lambda_2)} pairs. The default is \code{1}, i.e., no parallelization.}
 
-\item{r}{(optional) integer specifying the rank of the knowledge graphs, as in \code{\link{learner}}}
+\item{control}{a list of parameters for controlling the stopping criteria for the numerical optimization algorithm, as in \code{\link{learner}}.}
 }
 \value{
 A list with the following elements:
