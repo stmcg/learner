@@ -40,8 +40,7 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
   Eigen::MatrixXd V_trunc_T = V_trunc.transpose();
 
   // For now, we assume no missing data (perc_nonmissing = 1).
-  // double perc_nonmissing = (Y_target.array().isNaN().count() > 0) ? ( (p*q - num_missing) / double(p*q)) : 1.0;
-  double perc_nonmissing = 1.0;
+  double perc_nonmissing = 1.0 - (static_cast<double>((Y_target.array().isNaN()).count()) / Y_target.size());
   bool missing = Y_target.hasNaN();
 
   double obj_init = 0.0;
