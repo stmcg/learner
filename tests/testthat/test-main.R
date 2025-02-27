@@ -17,6 +17,19 @@ test_that("cv.learner (parallel) does not fail", {
                n_cores = 2))
 })
 
+test_that("cv.learner output is correct", {
+  expected_result <- t(matrix(c(5494.916, 5312.724,
+                                5341.662, 5233.828,
+                                5009.216, 5013.827), nrow = 2, ncol = 3))
+  set.seed(1234)
+  result <- cv.learner(Y_source = dat_highsim$Y_source,
+                       Y_target = dat_highsim$Y_target,
+                       lambda_1_all = c(1, 10, 100),
+                       lambda_2_all = c(1, 10),
+                       step_size = 0.003)
+  expect_equal(result$mse, expected_result, tolerance = 1e-3)
+})
+
 test_that("learner does not fail", {
   expect_no_error(
     learner(Y_source = dat_highsim$Y_source,
@@ -78,4 +91,17 @@ test_that("cv.learner does not fail with missing data", {
                lambda_1_all = c(1, 10),
                lambda_2_all = c(1, 10),
                step_size = 0.003))
+})
+
+test_that("cv.learner output is correct with missing data", {
+  expected_result <- t(matrix(c(5457.513, 5254.740,
+                                5291.389, 5175.707,
+                                4933.222, 4947.356), nrow = 2, ncol = 3))
+  set.seed(1234)
+  result <- cv.learner(Y_source = dat_highsim$Y_source,
+                       Y_target = Y_target_highsim_missing,
+                       lambda_1_all = c(1, 10, 100),
+                       lambda_2_all = c(1, 10),
+                       step_size = 0.003)
+  expect_equal(result$mse, expected_result, tolerance = 1e-3)
 })

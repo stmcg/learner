@@ -59,8 +59,23 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all, lambda_2_all,
     control$max_value <- 10
   }
 
+  if (n_folds < 2){
+    stop('n_folds must be 2 or greater.')
+  }
+
+  ## Creating training and testing data sets
+  available_indices <- which(!is.na(Y_target))
+  n_indices <- length(available_indices)
+  indices <- sample(available_indices, size = n_indices, replace = FALSE) - 1
+
+  index_set <- vector(mode = "list", length = n_folds)
+  for (fold in 1:n_folds){
+    index_set[[fold]] <- indices[floor((fold - 1) * n_indices / n_folds + 1):floor(fold * n_indices / n_folds)]
+  }
+
   result <- cv_learner_cpp(Y_source, Y_target, lambda_1_all, lambda_2_all, step_size,
-                           n_folds, control$max_iter, control$threshold, n_cores, r, control$max_value)
+                           n_folds, control$max_iter, control$threshold, n_cores, r, control$max_value,
+                           index_set)
   return(result)
 }
 
