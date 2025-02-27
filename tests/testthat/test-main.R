@@ -57,6 +57,17 @@ test_that("dlearner does not fail", {
              Y_target = dat_highsim$Y_target))
 })
 
+test_that("dlearner output is correct", {
+  expected_result <- t(matrix(c(0.0959171, -1.72143637,  1.15500149,  0.005478273,  0.3258085,
+                                0.1077137, -0.32243480, -1.03557177, -0.108195636, -0.4093049,
+                                -0.7237275,  0.86634922, -0.43528206,  1.105802194, -0.5961351,
+                                1.6347696, -2.91985925,  0.04876288, -2.357504089,  0.8127403,
+                                0.4757450,  0.05665543, -1.50373470, -0.744076401, -0.2876033), nrow = 5, ncol = 5))
+  result <- dlearner(Y_source = dat_highsim$Y_source,
+                    Y_target = dat_highsim$Y_target)
+  expect_equal(result$dlearner_estimate[1:5, 1:5], expected_result, tolerance = 1e-5)
+})
+
 
 # Missing data cases
 set.seed(1234)
