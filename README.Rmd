@@ -39,7 +39,7 @@ devtools::install_github("stmcg/learner")
 ## Example
 
 We illustrate an example of how `learner` can be used. We first load the package.
-```{r}
+```{r, results="hide", message=FALSE}
 library(learner)
 ```
 

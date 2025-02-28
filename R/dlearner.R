@@ -54,8 +54,9 @@ dlearner <- function(Y_source, Y_target, r){
   }
 
   svd_source <- svd(Y_source, nu = r, nv = r)
-  dlearner_estimate <- (svd_source$u %*% t(svd_source$u)) %*%
-    Y_target %*% (svd_source$v %*% t(svd_source$v))
+  dlearner_estimate <- svd_source$u %*%
+    (t(svd_source$u) %*% Y_target %*% svd_source$v) %*%
+    t(svd_source$v)
 
   colnames(dlearner_estimate) <- colnames(Y_source)
   rownames(dlearner_estimate) <- rownames(Y_source)

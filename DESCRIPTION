@@ -1,10 +1,12 @@
 Package: learner
 Type: Package
 Title: Latent Space-Based Transfer Learning
-Version: 0.2.0
+Version: 1.0.0
 Authors@R: c(person("Sean", "McGrath", role = c("aut", "cre"), 
                      email = "sean.mcgrath514@gmail.com",
                      comment = c(ORCID = "0000-0002-7281-3516")),
+              person("Ryan", "ODea", role = c("aut"),
+                     email = "ryanodea@hsph.harvard.edu"),
               person("Cenhao", "Zhu", role = c("aut"),
                       email = "cenhaoz@mit.edu"),
               person("Rui", "Duan", role = c("aut"), 
@@ -22,7 +24,10 @@ LazyData: true
 RoxygenNote: 7.3.2
 URL: https://github.com/stmcg/learner
 BugReports: https://github.com/stmcg/learner/issues
-Imports: doParallel, foreach, ScreeNOT
+Imports: ScreeNOT,
+         Rcpp (>= 1.0.11),
+         RcppEigen
+LinkingTo: Rcpp, RcppEigen
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
