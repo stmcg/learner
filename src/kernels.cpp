@@ -39,7 +39,6 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
   Eigen::MatrixXd U_trunc_T = U_trunc.transpose();
   Eigen::MatrixXd V_trunc_T = V_trunc.transpose();
 
-  // For now, we assume no missing data (perc_nonmissing = 1).
   double perc_nonmissing = 1.0 - (static_cast<double>((Y_target.array().isNaN()).count()) / Y_target.size());
   bool missing = Y_target.hasNaN();
 
@@ -108,7 +107,7 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
       V_best = V;
     }
 
-    // Simple convergence check (you might refine this).
+    // Checking for convergence conditions
     if (iter > 0 && std::abs(obj - obj_values[iter - 1]) < threshold) {
       convergence_criterion = 1;
       break;
