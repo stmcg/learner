@@ -19,8 +19,6 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
                                int r, double lambda1, double lambda2,
                                double step_size, int max_iter, double threshold,
                                double max_value) {
-  int p = Y_source.rows();
-  int q = Y_source.cols();
 
   Eigen::BDCSVD<Eigen::MatrixXd> svd(Y_source, Eigen::ComputeThinU | Eigen::ComputeThinV);
   Eigen::MatrixXd U_full = svd.matrixU();
