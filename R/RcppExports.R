@@ -5,8 +5,8 @@ learner_cpp <- function(Y_source, Y_target, r, lambda1, lambda2, step_size, max_
     .Call(`_learner_learner_cpp`, Y_source, Y_target, r, lambda1, lambda2, step_size, max_iter, threshold, max_value)
 }
 
-cv_learner_cpp <- function(Y_source, Y_target, lambda1_all, lambda2_all, step_size, n_folds, max_iter, threshold, n_cores, r, max_value) {
-    .Call(`_learner_cv_learner_cpp`, Y_source, Y_target, lambda1_all, lambda2_all, step_size, n_folds, max_iter, threshold, n_cores, r, max_value)
+cv_learner_cpp <- function(Y_source, Y_target, lambda1_all, lambda2_all, step_size, n_folds, max_iter, threshold, n_cores, r, max_value, index_set) {
+    .Call(`_learner_cv_learner_cpp`, Y_source, Y_target, lambda1_all, lambda2_all, step_size, n_folds, max_iter, threshold, n_cores, r, max_value, index_set)
 }
 
 omp_max_threads <- function() {

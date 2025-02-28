@@ -19,8 +19,6 @@ List learner_worker(const Eigen::MatrixXd &Y_source,
                                int r, double lambda1, double lambda2,
                                double step_size, int max_iter, double threshold,
                                double max_value) {
-  int p = Y_source.rows();
-  int q = Y_source.cols();
 
   Eigen::BDCSVD<Eigen::MatrixXd> svd(Y_source, Eigen::ComputeThinU | Eigen::ComputeThinV);
   Eigen::MatrixXd U_full = svd.matrixU();
@@ -145,22 +143,12 @@ List learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_targe
 List cv_learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_target,
                     const std::vector<double> &lambda1_all, const std::vector<double> &lambda2_all,
                     double step_size, int n_folds, int max_iter, double threshold,
-                    int n_cores, int r, double max_value) {
+                    int n_cores, int r, double max_value,
+                    const std::vector<std::vector<int>> &index_set) {
   int p = Y_source.rows();
   int q = Y_source.cols();
   int n_lambda1 = lambda1_all.size();
   int n_lambda2 = lambda2_all.size();
-
-  std::vector<int> indices(p * q);
-  std::iota(indices.begin(), indices.end(), 0);
-  std::shuffle(indices.begin(), indices.end(), std::mt19937{std::random_device{}()});
-
-  std::vector<std::vector<int>> index_set(n_folds);
-  for (int fold = 0; fold < n_folds; ++fold) {
-    int start = fold * (indices.size() / n_folds);
-    int end = (fold + 1) * (indices.size() / n_folds);
-    index_set[fold] = std::vector<int>(indices.begin() + start, indices.begin() + end);
-  }
 
   Eigen::MatrixXd mse_all = Eigen::MatrixXd::Zero(n_lambda1, n_lambda2);
 
@@ -172,8 +160,8 @@ List cv_learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_ta
       for (int fold = 0; fold < n_folds; ++fold) {
         Eigen::MatrixXd Y_train = Y_target;
         for (int idx : index_set[fold]) {
-          int row = idx / q;
-          int col = idx % q;
+          int row = idx % p;
+          int col = idx / p;
           Y_train(row, col) = std::numeric_limits<double>::quiet_NaN();
         }
         List temp = learner_worker(Y_source, Y_train, r,
@@ -182,8 +170,8 @@ List cv_learner_cpp(const Eigen::MatrixXd &Y_source, const Eigen::MatrixXd &Y_ta
         Eigen::MatrixXd learner_estimate = temp["learner_estimate"];
         double fold_mse = 0.0;
         for (int idx : index_set[fold]) {
-          int row = idx / q;
-          int col = idx % q;
+          int row = idx % p;
+          int col = idx / p;
           double diff = learner_estimate(row, col) - Y_target(row, col);
           fold_mse += diff * diff;
         }
