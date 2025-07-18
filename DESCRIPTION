@@ -1,7 +1,7 @@
 Package: learner
 Type: Package
 Title: Latent Space-Based Transfer Learning
-Version: 1.0.0
+Version: 1.0.1
 Authors@R: c(person("Sean", "McGrath", role = c("aut", "cre"), 
                      email = "sean.mcgrath514@gmail.com",
                      comment = c(ORCID = "0000-0002-7281-3516")),
