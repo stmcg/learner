@@ -27,7 +27,7 @@ test_that("cv.learner output is correct", {
                        lambda_1_all = c(1, 10, 100),
                        lambda_2_all = c(1, 10),
                        step_size = 0.003)
-  expect_equal(result$mse, expected_result, tolerance = 1e-3)
+  expect_equal(result$mse_all, expected_result, tolerance = 1e-3)
 })
 
 test_that("learner does not fail", {
@@ -114,5 +114,5 @@ test_that("cv.learner output is correct with missing data", {
                        lambda_1_all = c(1, 10, 100),
                        lambda_2_all = c(1, 10),
                        step_size = 0.003)
-  expect_equal(result$mse, expected_result, tolerance = 1e-3)
+  expect_equal(result$mse_all, expected_result, tolerance = 1e-3)
 })
