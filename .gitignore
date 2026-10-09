@@ -3,8 +3,5 @@
 .RData
 .Ruserdata
 
-# Local R startup and meeting preparation files
 .Rprofile
 .DS_Store
-build_sean_meeting_*.cjs
-test_temp_file.txt

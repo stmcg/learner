@@ -1,4 +1,4 @@
-# learner 1.1.0
+### learner version 1.1.0 (unreleased)
 
 * Integrate multiple-source support and separate space penalties from the
   preliminary `learnerv2` 0.3.0 implementation into the package's R and C++
