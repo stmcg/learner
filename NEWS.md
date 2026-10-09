@@ -1,4 +1,4 @@
-# learner (development)
+### learner version 1.1.0 (unreleased)
 
 * Add `plot_objective()` for full and recent objective histories, with stopping
   codes and an explicitly labeled recorded minimum.
@@ -18,10 +18,8 @@
 * Include reproducible plotting examples and automated tests. These plots do
   not establish convergence, assign biological labels, or reproduce the
   published experiments.
-* Add ggplot2 as a plotting dependency and require R >= 3.6.0 for the color
-  palette functions used by the simulation plots.
-
-# learner 1.1.0
+* Make ggplot2 an optional dependency used only by the CV heatmap. Other
+  plots and estimation functions remain available without it.
 
 * Integrate multiple-source support and separate space penalties from the
   preliminary `learnerv2` 0.3.0 implementation into the package's R and C++

@@ -5,6 +5,10 @@ cannot establish convergence or statistical superiority.
 
 ## CV heatmaps and profiles
 
+Only the heatmap requires the optional package ggplot2 >= 3.4.0. Install it
+with `install.packages("ggplot2")`. Estimation and all other plotting functions
+work without ggplot2.
+
 ```r
 plot_cv(cv, lambda_1_all = common_grid, lambda_2_all = balance_grid,
         n_observed = sum(!is.na(target)), log_labels = TRUE)

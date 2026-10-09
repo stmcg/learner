@@ -71,7 +71,7 @@ plot_simulation_results <- function(data, uncertainty=c('none','sd','se'),
                          match(summary$method,methods),summary$variance_ratio),]
   rownames(summary)<-NULL
   canonical<-c('Target-only SVD','D-LEARNER','LEARNER')
-  colors<-stats::setNames(grDevices::hcl.colors(length(methods),'Dark 3'),methods)
+  colors<-stats::setNames(grDevices::colorRampPalette(c('#7B3294', '#008837', '#E66101', '#2166AC'))(length(methods)),methods)
   types<-stats::setNames(1+(seq_along(methods)-1)%%6,methods)
   for(j in seq_along(canonical))if(canonical[j] %in% methods) {
     colors[canonical[j]]<-c('#E41A1C','#4DAF4A','#377EB8')[j]

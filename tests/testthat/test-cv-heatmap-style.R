@@ -1,4 +1,5 @@
 test_that('relative heatmaps preserve score alignment and distinguish high error from missing', {
+  testthat::skip_if_not_installed("ggplot2", minimum_version = "3.4.0")
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
   x <- list(mse_all = matrix(c(100, 110, 140, NA_real_), 2), lambda_1_min = 1, lambda_2_min = 0.1)
@@ -24,6 +25,7 @@ test_that('relative heatmaps preserve score alignment and distinguish high error
 })
 
 test_that('zero minima use absolute scores and exact ties remain first in CV order', {
+  testthat::skip_if_not_installed("ggplot2", minimum_version = "3.4.0")
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
   x <- list(mse_all = matrix(c(0, 0, 2, 4), 2), lambda_1_min = 1, lambda_2_min = .1)
@@ -39,6 +41,7 @@ test_that('zero minima use absolute scores and exact ties remain first in CV ord
 })
 
 test_that('separate heatmaps share scales and return printable pages', {
+  testthat::skip_if_not_installed("ggplot2", minimum_version = "3.4.0")
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
   x <- list(mse_all = array(7:1, c(1, 1, 7)), lambda_1_row_min = 1,

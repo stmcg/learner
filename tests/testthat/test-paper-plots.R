@@ -1,4 +1,5 @@
 test_that('CV annotations distinguish small differences from exact ties and numeric boundaries', {
+  testthat::skip_if_not_installed("ggplot2", minimum_version = "3.4.0")
   path<-plot_device();on.exit({grDevices::dev.off();unlink(path)},add=TRUE)
   x<-list(mse_all=matrix(c(1.06,1.051,1.07,1.06,1.052,1.07),3),
           lambda_1_min=50,lambda_2_min=0.01)

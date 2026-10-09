@@ -33,12 +33,12 @@ Imports: ScreeNOT,
          RcppEigen,
          graphics,
          grDevices,
-         stats,
-         ggplot2 (>= 3.4.0)
+         stats
 LinkingTo: Rcpp, RcppEigen
 Suggests: 
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    ggplot2 (>= 3.4.0)
 Config/testthat/edition: 3
 Depends: 
-    R (>= 3.6.0)
-Config/roxygen2/version: 8.1.0
+    R (>= 2.10)
+RoxygenNote: 7.3.2

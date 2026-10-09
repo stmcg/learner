@@ -35,6 +35,7 @@ test_that('objective plots support singleton, flat, and failed histories', {
 })
 
 test_that('CV plots retain candidate order, mark the global minimum, and scale SSE', {
+  testthat::skip_if_not_installed("ggplot2", minimum_version = "3.4.0")
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
   x <- cv_plot_example()
@@ -62,6 +63,7 @@ test_that('CV plots retain candidate order, mark the global minimum, and scale S
 })
 
 test_that('CV plots handle singleton axes, duplicate candidates, ties and unavailable scores', {
+  testthat::skip_if_not_installed("ggplot2", minimum_version = "3.4.0")
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
   x <- list(mse_all = array(c(5, 5, Inf, NA), c(1, 2, 2)),
@@ -84,6 +86,7 @@ test_that('CV plots handle singleton axes, duplicate candidates, ties and unavai
 })
 
 test_that('CV plots reject missing, mismatched, and ambiguous grid information', {
+  testthat::skip_if_not_installed("ggplot2", minimum_version = "3.4.0")
   x <- cv_plot_example()
   args <- list(x = x, lambda_1_row_all = c(10, 0),
                lambda_1_col_all = c(0.2, 3), lambda_2_all = c(0, 1))
@@ -105,6 +108,7 @@ test_that('CV plots reject missing, mismatched, and ambiguous grid information',
 })
 
 test_that('plot functions accept actual fits and both CV modes without changing outputs', {
+  testthat::skip_if_not_installed("ggplot2", minimum_version = "3.4.0")
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
   set.seed(623)
@@ -127,6 +131,7 @@ test_that('plot functions accept actual fits and both CV modes without changing 
 
 
 test_that('paper-style log labels preserve scores and candidate selection', {
+  testthat::skip_if_not_installed("ggplot2", minimum_version = "3.4.0")
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
   x <- list(mse_all = matrix(c(4, 3, 2, 1), 2, 2),

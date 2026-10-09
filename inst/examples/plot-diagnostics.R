@@ -1,3 +1,8 @@
+# This heatmap demonstration requires the optional ggplot2 package.
+if (!requireNamespace("ggplot2", quietly = TRUE) ||
+    utils::packageVersion("ggplot2") < "3.4.0") {
+  stop('Install ggplot2 >= 3.4.0 to run this example: install.packages("ggplot2")')
+}
 # Run after installing the plotting development version of learner.
 # Synthetic data demonstrate the interface, not statistical performance.
 set.seed(803)

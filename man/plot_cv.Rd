@@ -90,6 +90,8 @@ The stored \code{mse_all} values are sums of held-out squared errors. MSE
 conversion requires the correct \code{n_observed}; the function cannot infer
 this count from the scores. Neither this plot nor CV certifies convergence
 of the individual fits. No fitting is performed and \code{x} is unchanged.
+Requires optional ggplot2 >= 3.4.0; install it with
+\code{install.packages("ggplot2")}. Estimation and other plots do not require it.
 Draws with ggplot2 without modifying base graphics parameters. Each page shares
 one legend. A sufficiently large device is recommended for multiple panels.
 Relative increases are undefined when the minimum is zero; the display then
@@ -99,6 +101,8 @@ Use ggplot2::ggsave(plot = result$plot, ...) to export the first page, or
 export each member of result$plots for multiple pages.
 }
 \examples{
+if (requireNamespace("ggplot2", quietly = TRUE) &&
+    utils::packageVersion("ggplot2") >= "3.4.0") {
 row_grid <- c(0.1, 1)
 col_grid <- c(0.1, 2)
 balance_grid <- c(0.1, 1)
@@ -111,5 +115,7 @@ cv <- cv.learner(dat_highsim$Y_source[1:12, 1:8], target,
                  control = list(max_iter = 20))
 plot_cv(cv, lambda_1_row_all = row_grid, lambda_1_col_all = col_grid,
         lambda_2_all = balance_grid, n_observed = sum(!is.na(target)))
+
+}
 
 }

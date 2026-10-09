@@ -5,5 +5,3 @@
 ^data-raw$
 ^README_files/
 ^\.Rprofile$
-^build_sean_meeting_.*\.cjs$
-^test_temp_file\.txt$

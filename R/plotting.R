@@ -160,6 +160,8 @@ plot_objective <- function(x, last = NULL, main = "Recorded objective history") 
 #' conversion requires the correct \code{n_observed}; the function cannot infer
 #' this count from the scores. Neither this plot nor CV certifies convergence
 #' of the individual fits. No fitting is performed and \code{x} is unchanged.
+#' Requires optional ggplot2 >= 3.4.0; install it with
+#' \code{install.packages("ggplot2")}. Estimation and other plots do not require it.
 #' Draws with ggplot2 without modifying base graphics parameters. Each page shares
 #' one legend. A sufficiently large device is recommended for multiple panels.
 #' Relative increases are undefined when the minimum is zero; the display then
@@ -169,6 +171,8 @@ plot_objective <- function(x, last = NULL, main = "Recorded objective history") 
 #' export each member of result$plots for multiple pages.
 #'
 #' @examples
+#' if (requireNamespace("ggplot2", quietly = TRUE) &&
+#'     utils::packageVersion("ggplot2") >= "3.4.0") {
 #' row_grid <- c(0.1, 1)
 #' col_grid <- c(0.1, 2)
 #' balance_grid <- c(0.1, 1)
@@ -181,6 +185,8 @@ plot_objective <- function(x, last = NULL, main = "Recorded objective history") 
 #'                  control = list(max_iter = 20))
 #' plot_cv(cv, lambda_1_row_all = row_grid, lambda_1_col_all = col_grid,
 #'         lambda_2_all = balance_grid, n_observed = sum(!is.na(target)))
+#'
+#' }
 #'
 #' @export
 plot_cv <- function(x, lambda_1_all = NULL, lambda_2_all = NULL,
@@ -200,6 +206,14 @@ plot_cv <- function(x, lambda_1_all = NULL, lambda_2_all = NULL,
   }
   if (!is.character(main) || length(main) != 1L || is.na(main)) {
     stop('main must be one nonmissing character string.')
+  }
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop('plot_cv() requires the optional ggplot2 package. Install it with install.packages("ggplot2").',
+         call. = FALSE)
+  }
+  if (utils::packageVersion("ggplot2") < "3.4.0") {
+    stop('plot_cv() requires ggplot2 >= 3.4.0. Update it with install.packages("ggplot2").',
+         call. = FALSE)
   }
   separate <- length(dim(d$scores)) == 3L
   indices <- as.data.frame(arrayInd(seq_along(d$scores), dim(d$scores)))
