@@ -279,7 +279,12 @@ plot_cv <- function(x, lambda_1_all = NULL, lambda_2_all = NULL,
   for (page in split(panels, ceiling(seq_along(panels) / 6))) {
     data <- indices[indices$slice %in% page, , drop = FALSE]
     facet_labels <- paste0('lambda[2] == ', format(d$grids$balance[page], digits = 4, trim = TRUE))
-    data$panel <- factor(data$slice, levels = page, labels = facet_labels)
+    if (anyDuplicated(facet_labels)) {
+      facet_labels <- paste0('lambda[2] == ', format(d$grids$balance[page], digits = 17, trim = TRUE))
+    }
+    # Grid indices identify panels; rounded display labels must not merge them.
+    data$panel <- factor(data$slice, levels = page)
+    panel_labels <- stats::setNames(facet_labels, as.character(page))
     plot <- ggplot2::ggplot(data, ggplot2::aes(x = x_index, y = y_index, fill = fill_value)) +
       ggplot2::geom_tile(color = 'white', linewidth = 0.35, width = 1, height = 1) +
       ggplot2::scale_fill_viridis_c(option = 'magma', direction = -1,
@@ -306,7 +311,7 @@ plot_cv <- function(x, lambda_1_all = NULL, lambda_2_all = NULL,
     plot <- plot + ggplot2::geom_tile(data = data[data$selected, , drop = FALSE],
                        fill = NA, color = 'black', linewidth = 0.9, width = 0.94, height = 0.94)
     if (separate) plot <- plot + ggplot2::facet_wrap(~panel, ncol = min(3L, length(page)),
-                                                    labeller = ggplot2::label_parsed)
+                                                    labeller = ggplot2::as_labeller(panel_labels, default = ggplot2::label_parsed))
     print(plot)
     plots[[length(plots) + 1L]] <- plot
   }

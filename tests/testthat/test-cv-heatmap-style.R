@@ -52,7 +52,24 @@ test_that('separate heatmaps share scales and return printable pages', {
   subset <- do.call(plot_cv, c(args, list(lambda_2_index = c(7, 2))))
   expect_length(full$plots, 2)
   expect_equal(full$display_limits, subset$display_limits)
-  expect_equal(as.character(subset$plot$data$panel), c('lambda[2] == 2', 'lambda[2] == 7'))
-  expect_equal(levels(subset$plot$data$panel), c('lambda[2] == 7', 'lambda[2] == 2'))
+  expect_equal(as.character(subset$plot$data$panel), c('2', '7'))
+  expect_equal(levels(subset$plot$data$panel), c('7', '2'))
   expect_equal(sum(subset$plot$data$selected), 1)
+})
+
+
+test_that('close or repeated balance candidates remain distinct heatmap panels', {
+  testthat::skip_if_not_installed("ggplot2", minimum_version = "3.4.0")
+  path <- plot_device()
+  on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
+  for (balance in list(c(1, 1.00001), c(1, 1))) {
+    x <- list(mse_all = array(1:8, c(2, 2, 2)), lambda_1_row_min = 1,
+              lambda_1_col_min = 1, lambda_2_min = 1)
+    result <- plot_cv(x, lambda_1_row_all = c(1, 2),
+                      lambda_1_col_all = c(1, 2), lambda_2_all = balance)
+    built <- ggplot2::ggplot_build(result$plot)
+    expect_equal(nrow(built$layout$layout), 2L)
+    expect_equal(as.integer(table(built$data[[1]]$PANEL)), c(4L, 4L))
+    expect_equal(as.integer(built$data[[3]]$PANEL), 1L)
+  }
 })
