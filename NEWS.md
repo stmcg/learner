@@ -1,5 +1,26 @@
 ### learner version 1.1.0 (unreleased)
 
+* Add `plot_objective()` for full and recent objective histories, with stopping
+  codes and an explicitly labeled recorded minimum.
+* Add `plot_cv()` for common and separate penalty grids. The ggplot2 heatmaps
+  show relative error above the minimum using reversed magma colors, percentage
+  labels, and a black selection box. Separate panels share one legend.
+* Report absolute SSE or MSE ranges, exact ties, and boundary selections.
+  Finite errors above an optional relative cutoff are labeled as high error,
+  never optimizer divergence. Zero minima use absolute scores instead.
+  Return ggplot objects for customization and `ggsave()` export.
+* Add `plot_cv_profile()` for penalty sensitivity curves, including separate
+  row and column penalties and optional base-10 horizontal coordinates.
+* Add `plot_source_spaces()` for population projector submatrices and
+  `plot_contributions()` for squared singular-vector contribution scores.
+* Add `plot_simulation_results()` for replicate-level errors, with shared
+  scales and optional explicitly labeled SD or SE bars.
+* Include reproducible plotting examples and automated tests. These plots do
+  not establish convergence, assign biological labels, or reproduce the
+  published experiments.
+* Make ggplot2 an optional dependency used only by the CV heatmap. Other
+  plots and estimation functions remain available without it.
+
 * Integrate multiple-source support and separate space penalties from the
   preliminary `learnerv2` 0.3.0 implementation into the package's R and C++
   implementation.
