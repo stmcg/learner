@@ -12,43 +12,46 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // learner_cpp
-List learner_cpp(const Eigen::MatrixXd& Y_source, const Eigen::MatrixXd& Y_target, int r, double lambda1, double lambda2, double step_size, int max_iter, double threshold, double max_value);
-RcppExport SEXP _learner_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP rSEXP, SEXP lambda1SEXP, SEXP lambda2SEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP, SEXP max_valueSEXP) {
+List learner_cpp(const Rcpp::List& Y_source, const Eigen::MatrixXd& Y_target, const std::vector<double>& source_weights, int r, double lambda1_row, double lambda1_col, double lambda2, double step_size, int max_iter, double threshold, double max_value);
+RcppExport SEXP _learner_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP source_weightsSEXP, SEXP rSEXP, SEXP lambda1_rowSEXP, SEXP lambda1_colSEXP, SEXP lambda2SEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP, SEXP max_valueSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Y_source(Y_sourceSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type Y_source(Y_sourceSEXP);
     Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Y_target(Y_targetSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type source_weights(source_weightsSEXP);
     Rcpp::traits::input_parameter< int >::type r(rSEXP);
-    Rcpp::traits::input_parameter< double >::type lambda1(lambda1SEXP);
+    Rcpp::traits::input_parameter< double >::type lambda1_row(lambda1_rowSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda1_col(lambda1_colSEXP);
     Rcpp::traits::input_parameter< double >::type lambda2(lambda2SEXP);
     Rcpp::traits::input_parameter< double >::type step_size(step_sizeSEXP);
     Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
     Rcpp::traits::input_parameter< double >::type max_value(max_valueSEXP);
-    rcpp_result_gen = Rcpp::wrap(learner_cpp(Y_source, Y_target, r, lambda1, lambda2, step_size, max_iter, threshold, max_value));
+    rcpp_result_gen = Rcpp::wrap(learner_cpp(Y_source, Y_target, source_weights, r, lambda1_row, lambda1_col, lambda2, step_size, max_iter, threshold, max_value));
     return rcpp_result_gen;
 END_RCPP
 }
 // cv_learner_cpp
-List cv_learner_cpp(const Eigen::MatrixXd& Y_source, const Eigen::MatrixXd& Y_target, const std::vector<double>& lambda1_all, const std::vector<double>& lambda2_all, double step_size, int n_folds, int max_iter, double threshold, int n_cores, int r, double max_value, const std::vector<std::vector<int>>& index_set);
-RcppExport SEXP _learner_cv_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP lambda1_allSEXP, SEXP lambda2_allSEXP, SEXP step_sizeSEXP, SEXP n_foldsSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP, SEXP n_coresSEXP, SEXP rSEXP, SEXP max_valueSEXP, SEXP index_setSEXP) {
+std::vector<double> cv_learner_cpp(const Rcpp::List& Y_source, const Eigen::MatrixXd& Y_target, const std::vector<double>& source_weights, const std::vector<double>& row_grid, const std::vector<double>& col_grid, const std::vector<double>& balance_grid, double step_size, int max_iter, double threshold, int n_cores, int r, double max_value, const std::vector<std::vector<int>>& index_set);
+RcppExport SEXP _learner_cv_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP source_weightsSEXP, SEXP row_gridSEXP, SEXP col_gridSEXP, SEXP balance_gridSEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP, SEXP n_coresSEXP, SEXP rSEXP, SEXP max_valueSEXP, SEXP index_setSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Y_source(Y_sourceSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type Y_source(Y_sourceSEXP);
     Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Y_target(Y_targetSEXP);
-    Rcpp::traits::input_parameter< const std::vector<double>& >::type lambda1_all(lambda1_allSEXP);
-    Rcpp::traits::input_parameter< const std::vector<double>& >::type lambda2_all(lambda2_allSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type source_weights(source_weightsSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type row_grid(row_gridSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type col_grid(col_gridSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type balance_grid(balance_gridSEXP);
     Rcpp::traits::input_parameter< double >::type step_size(step_sizeSEXP);
-    Rcpp::traits::input_parameter< int >::type n_folds(n_foldsSEXP);
     Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
     Rcpp::traits::input_parameter< int >::type n_cores(n_coresSEXP);
     Rcpp::traits::input_parameter< int >::type r(rSEXP);
     Rcpp::traits::input_parameter< double >::type max_value(max_valueSEXP);
     Rcpp::traits::input_parameter< const std::vector<std::vector<int>>& >::type index_set(index_setSEXP);
-    rcpp_result_gen = Rcpp::wrap(cv_learner_cpp(Y_source, Y_target, lambda1_all, lambda2_all, step_size, n_folds, max_iter, threshold, n_cores, r, max_value, index_set));
+    rcpp_result_gen = Rcpp::wrap(cv_learner_cpp(Y_source, Y_target, source_weights, row_grid, col_grid, balance_grid, step_size, max_iter, threshold, n_cores, r, max_value, index_set));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -64,8 +67,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_learner_learner_cpp", (DL_FUNC) &_learner_learner_cpp, 9},
-    {"_learner_cv_learner_cpp", (DL_FUNC) &_learner_cv_learner_cpp, 12},
+    {"_learner_learner_cpp", (DL_FUNC) &_learner_learner_cpp, 11},
+    {"_learner_cv_learner_cpp", (DL_FUNC) &_learner_cv_learner_cpp, 13},
     {"_learner_omp_max_threads", (DL_FUNC) &_learner_omp_max_threads, 0},
     {NULL, NULL, 0}
 };

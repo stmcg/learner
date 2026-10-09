@@ -4,59 +4,152 @@
 \alias{learner}
 \title{Latent space-based transfer learning}
 \usage{
-learner(Y_source, Y_target, r, lambda_1, lambda_2, step_size, control = list())
+learner(
+  Y_source,
+  Y_target,
+  r,
+  lambda_1 = NULL,
+  lambda_2,
+  step_size,
+  control = list(),
+  lambda_1_row = NULL,
+  lambda_1_col = NULL,
+  source_weights = NULL
+)
 }
 \arguments{
-\item{Y_source}{matrix containing the source population data}
+\item{Y_source}{numeric source matrix or nonempty list of numeric source matrices. Every source must have the same dimensions and corresponding row/column order as \code{Y_target}, and contain no missing or infinite values.}
 
-\item{Y_target}{matrix containing the target population data}
+\item{Y_target}{nonempty numeric matrix containing target population data.
+Missing entries (\code{NA} or \code{NaN}) are allowed, but at least one entry
+must be observed. Infinite values are not allowed.}
 
-\item{r}{(optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al. 2023) is applied to the source population knowledge graph to select the rank.}
+\item{r}{optional common rank for the source spaces and target factors, between 1 and the smaller matrix dimension. If omitted, ScreeNOT selects it from the first source.}
 
-\item{lambda_1}{numeric scalar specifying the value of \eqn{\lambda_1} (see Details)}
+\item{lambda_1}{finite nonnegative numeric scalar specifying the common space penalty. Supply either this parameter or both \code{lambda_1_row} and \code{lambda_1_col}, not both modes.}
 
-\item{lambda_2}{numeric scalar specifying the value of \eqn{\lambda_2} (see Details)}
+\item{lambda_2}{finite nonnegative numeric scalar for the balance penalty (see Details)}
 
-\item{step_size}{numeric scalar specifying the step size for the Newton steps in the numerical optimization algorithm}
+\item{step_size}{numeric scalar specifying the step size for the scaled gradient steps in the numerical optimization algorithm}
 
-\item{control}{a list of parameters for controlling the stopping criteria for the numerical optimization algorithm. The list may include the following components:
-\tabular{ll}{
-\code{max_iter} \tab integer specifying the maximum number of iterations \cr
-\code{threshold} \tab numeric scalar specifying a convergence threshold. The algorithm converges when \eqn{|\epsilon_t - \epsilon_{t-1}| < }\code{threshold}, where \eqn{\epsilon_t} denotes the value of the objective function at iteration \eqn{t}. \cr
-\code{max_value} \tab numeric scalar used to specify the maximum value of the objective function allowed before terminating the algorithm. Specifically, the algorithm will terminate if the value of the objective function exceeds \code{max_value}\eqn{\times \epsilon_0}, where \eqn{\epsilon_0} denotes the value of the objective function at the initial point. This is used to prevent unnecessary computation time after the optimization algorithm diverges. \cr}}
+\item{control}{list controlling the numerical optimization:
+\describe{
+\item{\code{max_iter}}{Positive integer giving the maximum number of updates;
+default \code{100}.}
+\item{\code{threshold}}{Finite nonnegative absolute objective-change threshold;
+default \code{0.001}. Starting with the second update, the algorithm stops
+when \eqn{|L_t-L_{t-1}|} is strictly less than this value. This rule alone does
+not establish factor stability or a global optimum.}
+\item{\code{max_value}}{Finite positive multiplier; default \code{10}.
+Starting with the second update, the algorithm stops if the current objective
+exceeds this multiplier times the preceding objective (unless the
+objective-change stopping rule has already been met).}}}
+
+\item{lambda_1_row}{optional finite nonnegative numeric scalar for the source-space penalty on \eqn{U} (the SNP side when SNPs are rows). Must be supplied together with \code{lambda_1_col}.}
+
+\item{lambda_1_col}{optional finite nonnegative numeric scalar for the source-space penalty on \eqn{V} (the phenotype side when phenotypes are columns). Must be supplied together with \code{lambda_1_row}.}
+
+\item{source_weights}{optional finite nonnegative numeric vector with one
+weight per source and at least one positive value. Weights correspond to the
+order of matrices in \code{Y_source}; names are not used for matching. They
+are normalized to sum to one. \code{NULL} gives equal weights. For a single
+source, a supplied weight must be a positive scalar and is normalized to one.}
 }
 \value{
 A list with the following elements:
-\item{learner_estimate}{matrix containing the LEARNER estimate of the target population knowledge graph}
-\item{objective_values}{numeric vector containing the values of the objective function at each iteration}
-\item{convergence_criterion}{integer specifying the criterion that was satisfied for terminating the numerical optimization algorithm. A value of 1 indicates the convergence threshold was satisfied; A value of 2 indicates that the maximum number of iterations was satisfied; A value of 3 indicates that the maximum value of the objective function was satisfied.}
+\item{learner_estimate}{target signal estimate with the same dimensions as \code{Y_target}, formed from the factors with the lowest objective encountered, including the initialization.}
+\item{objective_values}{objective values after each update, excluding the initialization. The last value need not correspond to the returned estimate.}
+\item{convergence_criterion}{stopping code: \code{1}, the absolute objective-change threshold was met; \code{2}, the iteration limit was reached; \code{3}, excessive objective growth or non-finite objective/factors were detected.}
 \item{r}{rank value used.}
 }
 \description{
-This function applies the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) method (McGrath et al. 2024) to leverage data from a source population to improve
-estimation of a low rank matrix in an underrepresented target population.
+Estimate a low-rank target matrix using information from one or more source
+populations with the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) method
+(McGrath et al. 2024). The two source-space penalties can share a coefficient
+or use separate coefficients.
 }
 \details{
-\strong{Data and notation:}
+\strong{Data and source spaces:}
 
-The data consists of a matrix in the target population \eqn{Y_0 \in \mathbb{R}^{p \times q}} and the source population \eqn{Y_1 \in \mathbb{R}^{p \times q}}.
-Let \eqn{\hat{U}_{k} \hat{\Lambda}_{k} \hat{V}_{k}^{\top}} denote the truncated singular value decomposition (SVD) of \eqn{Y_k}, \eqn{k = 0, 1}.
+Let \eqn{Y_0} be the \eqn{p \times q} target matrix, and let
+\eqn{Y_1,\ldots,Y_K} be aligned source matrices of the same dimensions.
+The target signal is estimated by \eqn{UV^\top}, with
+\eqn{U \in \mathbb{R}^{p \times r}} and
+\eqn{V \in \mathbb{R}^{q \times r}}. For each source, the first \eqn{r}
+left and right singular vectors form bases \eqn{B_{U,k}} and \eqn{B_{V,k}}.
+The source operators are
+\deqn{\bar P_U = \sum_{k=1}^K w_k B_{U,k}B_{U,k}^\top, \qquad
+      \bar P_V = \sum_{k=1}^K w_k B_{V,k}B_{V,k}^\top,}
+where \eqn{w_k \geq 0} and \eqn{\sum_k w_k=1}.
+These combine source spaces, not the raw source matrices. The averaged
+operators are generally not orthogonal projectors themselves.
+Rows and columns must already be aligned by the caller; names are not matched.
 
-For \eqn{k = 0, 1}, one can view \eqn{Y_k} as a noisy version of \eqn{\Theta_k}, referred to as the knowledge graph. The target of inference is the target population knowledge graph, \eqn{\Theta_0}.
+\strong{Objective and penalties:}
 
-\strong{Estimation:}
+The numerical algorithm seeks to minimize
+\deqn{L(U,V) = \rho^{-1}\|\mathcal{P}_{\Omega}(UV^\top-Y_0)\|_F^2
+  + \lambda_{1,\mathrm{row}}\|(I-\bar P_U)U\|_F^2
+  + \lambda_{1,\mathrm{col}}\|(I-\bar P_V)V\|_F^2
+  + \lambda_2\|U^\top U-V^\top V\|_F^2.}
+Here \eqn{\Omega} contains the observed target entries,
+\eqn{\mathcal{P}_{\Omega}} keeps residuals at those entries and sets the
+others to zero, and \eqn{\rho=|\Omega|/(pq)} is the observed fraction.
+With no missing entries, \eqn{\rho=1}. Source matrices must be complete.
 
-This method estimates \eqn{\Theta_0} by \eqn{\tilde{U}\tilde{V}^{\top}}, where \eqn{(\tilde{U}, \tilde{V})} is the solution to the following optimization problem
-\deqn{\mathrm{arg\,min}_{U \in \mathbb{R}^{p \times r}, V \in \mathbb{R}^{q \times r}} \big\{ \| U V^{\top} - Y_0 \|_F^2 + \lambda_1\| \mathcal{P}_{\perp}(\hat{U}_{1})U \|_F^2 + \lambda_1\|  \mathcal{P}_{\perp}(\hat{V}_{1})V \|_F^2  + \lambda_2 \| U^{\top} U - V^{\top} V \|_F^2 \big\}}
-where \eqn{\mathcal{P}_{\perp}(\hat{U}_{1}) = I - \hat{U}_{1}^{\top}\hat{U}_{1}} and \eqn{\mathcal{P}_{\perp}(\hat{V}_{1}) = I - \hat{V}_{1}^{\top}\hat{V}_{1}}.
+Supply \code{lambda_1} for a common space penalty, or supply both
+\code{lambda_1_row} and \code{lambda_1_col} and leave \code{lambda_1=NULL}.
+Mixing the modes or providing only one separate coefficient is an error.
+Equal separate coefficients reproduce the common-penalty calculation under
+the same inputs and optimization settings. The balance penalty
+\code{lambda_2} is required in either mode.
+The space penalties square the residual from the weighted source operator;
+they are not weighted sums of separately squared per-source residuals.
+Use \code{\link{cv.learner}} to select common or separate penalty values.
 
-This function uses an alternating minimization strategy to solve the optimization problem. That is, this approach updates \eqn{U} by minimizing the objective function (via a gradient descent step) treating \eqn{V} as fixed. Then, \eqn{V} is updated treating \eqn{U} as fixed. These updates of \eqn{U} and \eqn{V} are repeated until convergence.
+\strong{Initialization and stopping:}
+
+If \code{r} is omitted, ScreeNOT selects it from the first source, with a
+minimum of one. A supplied \code{r} is used directly. The first source is
+always used to initialize the target factors, including when its weight is
+zero. Reordering sources with their weights therefore preserves the weighted
+operators for fixed \code{r}, but can change initialization and fitted results.
+The initial factors are the first source's retained left and right singular
+vectors, each multiplied by the square roots of its retained singular values.
+
+This function uses scaled gradient descent steps. Both gradients are
+evaluated at the current \eqn{U} and \eqn{V}, then both matrices are updated.
+Updates are repeated until a stopping criterion is satisfied. The returned
+estimate uses the best objective encountered, not necessarily the final
+iterate. Inspect \code{objective_values} and \code{convergence_criterion};
+code 1 only indicates that the stated objective-change rule was met.
 }
 \examples{
 res <- learner(Y_source = dat_highsim$Y_source,
                Y_target = dat_highsim$Y_target,
                lambda_1 = 1, lambda_2 = 1,
                step_size = 0.003)
+
+res_separate <- learner(Y_source = dat_highsim$Y_source,
+                        Y_target = dat_highsim$Y_target,
+                        lambda_1_row = 10, lambda_1_col = 1,
+                        lambda_2 = 1, step_size = 0.003)
+
+# Multiple sources with fixed demonstration weights.
+# Source B is a perturbed copy, not an independent population.
+set.seed(803)
+source_A <- dat_highsim$Y_source[1:20, 1:10]
+source_B <- source_A + matrix(rnorm(length(source_A), sd = 0.3),
+                              nrow(source_A), ncol(source_A))
+res_multi <- learner(
+  Y_source = list(A = source_A, B = source_B),
+  Y_target = dat_highsim$Y_target[1:20, 1:10], r = 2,
+  source_weights = c(0.7, 0.3),
+  lambda_1_row = 10, lambda_1_col = 1, lambda_2 = 1,
+  step_size = 0.0003, control = list(max_iter = 100))
+dim(res_multi$learner_estimate)
+res_multi$convergence_criterion
+# Short runs demonstrate usage; they need not meet the stopping threshold.
 
 }
 \references{

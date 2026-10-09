@@ -4,3 +4,4 @@
 ^\.github$
 ^data-raw$
 ^README_files/
+^\.Rprofile$
