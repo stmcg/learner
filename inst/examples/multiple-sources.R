@@ -58,3 +58,31 @@ comparison <- do.call(rbind, lapply(names(source_choices), function(label) {
 print(comparison, row.names = FALSE)
 # Lower Frobenius error is better. These are single-dataset results, not CV MSE.
 # The weights 0.7/0.3 are illustrative; combining sources need not beat source A.
+
+# A second setting: both sources have appreciable noise.
+# Keep the built-in data unchanged; variances are target 0.10, A 0.25, B 0.50.
+# Reuse the true signals, with new independent noise for every population.
+set.seed(20261016)
+add_noise <- function(signal, variance) {
+  signal + matrix(rnorm(length(signal), sd = sqrt(variance)),
+                  nrow(signal), ncol(signal))
+}
+target_noisy <- add_noise(learner::dat_multisource$Theta_target, variance = 0.10)
+sources_noisy <- list(
+  A = add_noise(learner::dat_multisource$Theta_source$A, variance = 0.25),
+  B = add_noise(learner::dat_multisource$Theta_source$B, variance = 0.50)
+)
+estimates_noisy <- list(
+  Target_only = learner::dlearner(target_noisy, target_noisy, r = 3)$dlearner_estimate,
+  A_only = learner::dlearner(sources_noisy$A, target_noisy, r = 3)$dlearner_estimate,
+  B_only = learner::dlearner(sources_noisy$B, target_noisy, r = 3)$dlearner_estimate,
+  Weighted_A_B = learner::dlearner(sources_noisy, target_noisy, r = 3,
+                         source_weights = c(0.7, 0.3))$dlearner_estimate
+)
+errors_noisy <- vapply(estimates_noisy, function(estimate) {
+  norm(estimate - learner::dat_multisource$Theta_target, "F")
+}, numeric(1))
+print(round(errors_noisy, 3))
+# Here the weighted combination improves on either source alone, but the
+# target-only SVD has the smallest error. Fixed weights and one noise draw
+# illustrate a possible outcome, not a general performance guarantee.
