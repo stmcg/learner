@@ -214,6 +214,46 @@ weights 0.7/0.3 are illustrative, not optimized. These results describe
 one simulated dataset; they are not CV errors or evidence that combining
 sources always improves estimation.
 
+### When both sources are noisy
+
+A second setting keeps the same true signals but generates new
+independent noise with variances 0.10 for the target, 0.25 for A, and
+0.50 for B. The built-in `dat_multisource` data are unchanged. Rank and
+weights remain fixed at 3 and 0.7/0.3, respectively.
+
+``` r
+# Reuse the true signals, with new independent noise for every population.
+set.seed(20261016)
+add_noise <- function(signal, variance) {
+  signal + matrix(rnorm(length(signal), sd = sqrt(variance)),
+                  nrow(signal), ncol(signal))
+}
+target_noisy <- add_noise(dat_multisource$Theta_target, variance = 0.10)
+sources_noisy <- list(
+  A = add_noise(dat_multisource$Theta_source$A, variance = 0.25),
+  B = add_noise(dat_multisource$Theta_source$B, variance = 0.50)
+)
+estimates_noisy <- list(
+  Target_only = dlearner(target_noisy, target_noisy, r = 3)$dlearner_estimate,
+  A_only = dlearner(sources_noisy$A, target_noisy, r = 3)$dlearner_estimate,
+  B_only = dlearner(sources_noisy$B, target_noisy, r = 3)$dlearner_estimate,
+  Weighted_A_B = dlearner(sources_noisy, target_noisy, r = 3,
+                         source_weights = c(0.7, 0.3))$dlearner_estimate
+)
+errors_noisy <- vapply(estimates_noisy, function(estimate) {
+  norm(estimate - dat_multisource$Theta_target, "F")
+}, numeric(1))
+round(errors_noisy, 3)
+#>  Target_only       A_only       B_only Weighted_A_B
+#>        6.436       13.377       16.549       10.566
+```
+
+Here combining the sources gives a lower error than using either source
+alone. However, the target-only SVD still has the smallest error.
+Together, the two examples illustrate that the benefit depends on source
+quality and weights; neither setting establishes that combining sources
+is always preferable.
+
 ### Latent spaces and contributions
 
 Compare the target and source spaces, or inspect which variables
