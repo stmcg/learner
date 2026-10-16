@@ -421,23 +421,6 @@ prepare_cv_plot <- function(x, lambda_1_all = NULL, lambda_2_all = NULL,
        boundary = boundary, lambda_2_slice_range = range(slice[is.finite(slice)]))
 }
 
-# Caption reports numerical facts rather than inferring a flat direction from color.
-plot_cv_caption <- function(d) {
-  number <- function(z) formatC(z, digits = 6, format = 'fg', flag = '#')
-  relative <- if (d$minimum > 0) paste0(' (span ', formatC(100 * diff(d$score_range) / d$minimum, digits = 2, format = 'f'), '% of minimum)') else ''
-  line1 <- paste0('Range: ', number(d$score_range[1]), ' to ', number(d$score_range[2]), relative,
-                   '; selected minimum = ', number(d$minimum), '.')
-  boundary <- names(d$boundary)[d$boundary]
-  line2 <- paste0(if(length(boundary)) paste0('Grid boundary: ', paste(boundary, collapse = ', '), '; ') else '',
-                   'lambda_2 slice span at selected space penalty: ',
-                   formatC(diff(d$lambda_2_slice_range), digits = 3, format = 'g'), '.')
-  line3 <- if (d$exact_minima > 1) paste(d$exact_minima, 'exact minima; first in CV order selected.') else 'Unique minimum among evaluated candidates.'
-  line3 <- paste('X: selected parameters.', line3,
-                 if(d$unavailable_count > 0) 'Gray: unavailable.' else '')
-  for (i in 1:3) graphics::mtext(c(line1,line2,line3)[i], outer = TRUE,
-                                 side = 1, line = 0.4 + (i-1)*1.1, cex = 0.78)
-}
-
 # Five ticks include the numerical endpoints even for a narrow score range.
 draw_color_key <- function(left, right, bottom, top, limits, colors) {
   edges <- seq(bottom, top, length.out=length(colors)+1L)
