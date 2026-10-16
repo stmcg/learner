@@ -11,10 +11,11 @@ plot_objective(fit, iterations = "near_optimum")   # Around the smallest recorde
 plot_objective(fit, iterations = 1:500)            # A specific range
 ```
 
-`"near_optimum"` centers a window on the first smallest finite recorded
-objective value. It shows 10% of the recorded iterations (rounded up), at least
-10, or the full history if fewer than 10 were recorded. At either end the window
-shifts to stay within the history. Both axes zoom to the selected window.
+`"near_optimum"` shows up to 41 consecutive records centered on the first
+smallest finite recorded objective value: 20 before and 20 after. At either
+boundary the window shifts to stay within the history; histories shorter than
+41 records are shown in full. Both axes adjust to this window. To choose a
+different width, supply numeric iteration indices, such as `79:119`.
 The shaded band spans actual adjacent objective values and the line shows their
 pairwise average, positioned halfway between the two iterations. Missing values
 interrupt the band and line; the band is not an uncertainty interval.

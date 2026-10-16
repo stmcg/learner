@@ -13,27 +13,36 @@ test_that('objective plots show the requested iterations', {
   expect_equal(plot_objective(fit, iterations = c(5, 2, 2))$iteration, c(2, 5))
   expect_equal(plot_objective(fit, iterations = 1:1000)$iteration, 1:130)
   expect_equal(plot_objective(fit, iterations = c(1000, 2, 1))$iteration, 1:2)
-  # A 13-iteration window centered on the first minimum at iteration 31.
-  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 25:37)
+  # Twenty records on each side of the first minimum (iteration 31).
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 11:51)
   expect_identical(fit, original)
 })
 
-test_that('near-optimum windows include both sides and zoom the horizontal axis', {
+test_that('near-optimum windows center on the minimum and zoom both axes', {
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
-  # Interior minimum followed by a long increase.
-  fit <- list(objective_values = (seq_len(101) - 51)^2)
+  # Steep decrease to an interior minimum, then a slow rise.
+  fit <- list(objective_values = 10 + 100 * exp(-0.05 * (1:2000)) + 0.0005 * (1:2000))
+  minimum <- which.min(fit$objective_values)
   plot_objective(fit)
-  full <- graphics::par('usr')[1:2]
+  full_x <- graphics::par('usr')[1:2]
+  full_y <- graphics::par('usr')[3:4]
   result <- plot_objective(fit, iterations = 'near_optimum')
-  expect_equal(result$iteration, 46:56)
-  expect_gt(graphics::par('usr')[1], full[1])
-  expect_lt(graphics::par('usr')[2], full[2])
-  # At the beginning, shift the window right; exact ties use the first minimum.
+  expect_equal(result$iteration, (minimum - 20L):(minimum + 20L))
+  expect_lt(diff(graphics::par('usr')[1:2]), 0.05 * diff(full_x))
+  expect_lt(diff(graphics::par('usr')[3:4]), 0.01 * diff(full_y))
+  # Appending worse records does not change the neighborhood of the minimum.
+  extended <- list(objective_values = c(fit$objective_values, rep(200, 3000)))
+  expect_equal(plot_objective(extended, iterations = 'near_optimum')$iteration,
+               result$iteration)
+  # Reproduce the early minimum in a 2000-record history.
+  early <- list(objective_values = (seq_len(2000) - 99)^2)
+  expect_equal(plot_objective(early, iterations = 'near_optimum')$iteration, 79:119)
+  # At the start, shift the window right; ties use the first minimum.
   fit$objective_values <- seq_len(100)
-  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 1:10)
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 1:41)
   fit$objective_values <- rep(1, 100)
-  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 1:10)
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 1:41)
 })
 
 test_that('near-optimum plots show the final stretch when the minimum is at the end', {
@@ -41,7 +50,11 @@ test_that('near-optimum plots show the final stretch when the minimum is at the 
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
   # A history that is still decreasing at the last iteration.
   fit <- list(objective_values = seq(100, 10, length.out = 100), convergence_criterion = 1L)
-  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 91:100)
+  plot_objective(fit)
+  full_x <- graphics::par('usr')[1:2]
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 60:100)
+  # The final stretch has its own horizontal axis.
+  expect_gt(graphics::par('usr')[1], full_x[1] + 50)
   # Short histories are shown in full.
   fit <- list(objective_values = c(9, 5, 4), convergence_criterion = 1L)
   expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 1:3)
@@ -52,13 +65,32 @@ test_that('near-optimum plots handle alternating and missing values and keep gra
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
   # Alternating values after a decrease; near_optimum draws them as a band.
   values <- c(seq(50, 11, length.out = 40), 10 + rep(c(0, 0.5), 200))
-  values[100] <- NA
+  values[50] <- NA
   fit <- list(objective_values = values, convergence_criterion = 2L)
   old <- graphics::par('mar')
   result <- plot_objective(fit)
   expect_equal(result$iteration, seq_along(values))
-  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 20:63)
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 21:61)
   expect_equal(graphics::par('mar'), old)
+})
+
+test_that('the objective legend is placed in an empty corner', {
+  path <- plot_device()
+  on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
+  args <- list(legend = c('a long legend label', 'second label', 'third label'),
+               lty = 1, cex = 0.8, y.intersp = 1.3, bty = 'n', inset = 0.02)
+  x <- 1:100
+  # A falling curve leaves the top right empty; a rising curve leaves the top left empty.
+  graphics::plot(x, rev(x), type = 'n')
+  expect_equal(legend_corner(x, rev(x), args), 'topright')
+  graphics::plot(x, x, type = 'n')
+  expect_equal(legend_corner(x, x, args), 'topleft')
+  # Non-finite values are ignored.
+  expect_equal(legend_corner(c(x, NA, 50), c(x, 5, Inf), args), 'topleft')
+  # Steep decrease followed by a flat stretch (typical objective history).
+  y <- c(seq(100, 10, length.out = 20), rep(10, 80))
+  graphics::plot(x, y, type = 'n')
+  expect_equal(legend_corner(x, y, args), 'topright')
 })
 
 test_that('objective plots handle flat, singleton, and non-finite histories', {

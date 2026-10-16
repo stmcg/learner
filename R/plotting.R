@@ -1,3 +1,17 @@
+# Corner of the current plot where the legend (drawn with 'args') would cover
+# the fewest data points. Ties go to the first corner listed.
+legend_corner <- function(x, y, args) {
+  keep <- is.finite(x) & is.finite(y)
+  x <- x[keep]
+  y <- y[keep]
+  corners <- c('topright', 'topleft', 'bottomright', 'bottomleft')
+  count <- vapply(corners, function(corner) {
+    box <- do.call(graphics::legend, c(list(corner, plot = FALSE), args))$rect
+    sum(x >= box$left & x <= box$left + box$w & y <= box$top & y >= box$top - box$h)
+  }, numeric(1))
+  corners[which.min(count)]
+}
+
 #' Plot the objective function values of a LEARNER fit
 #'
 #' Plots the values of the objective function at each iteration of the
@@ -8,11 +22,11 @@
 #' \code{"near_optimum"}, or a vector of iteration numbers such as
 #' \code{1:1000}. Positive integer indices beyond the recorded history are
 #' ignored; at least one requested iteration must exist.
-#' \code{"near_optimum"} shows a window centered on the first
-#' smallest finite recorded objective value. The window contains 10\% of the
-#' recorded iterations (rounded up), with a minimum of 10, or all iterations
-#' for shorter histories. At either boundary the window shifts to stay within
-#' the recorded history. Both axes adjust to the selected window.
+#' \code{"near_optimum"} shows up to 41 consecutive records centered on the
+#' first smallest finite recorded objective value (20 before and 20 after).
+#' At either boundary the window shifts to stay within the recorded history;
+#' histories shorter than 41 records are shown in full. Both axes adjust to
+#' the selected window. Use numeric iteration indices for a different width.
 #' @param main Title of the plot. By default, \code{"Objective function"},
 #' with \code{"(near optimum)"} added when \code{iterations = "near_optimum"}.
 #'
@@ -26,6 +40,7 @@
 #' that alternate between iterations remain visible, and a line at their
 #' average. Each pair is placed halfway between its two iteration numbers.
 #' Only actual adjacent pairs are used; missing values interrupt the display.
+#' The legend is placed in the corner of the plot with the fewest data points.
 #'
 #' @examples
 #' fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,
@@ -49,8 +64,8 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
   if (identical(iterations, 'all')) {
     shown <- seq_len(n)
   } else if (near) {
-    width <- min(n, max(10L, ceiling(0.1 * n)))
-    start <- max(1L, min(minimum - floor((width - 1L) / 2), n - width + 1L))
+    width <- min(n, 41L)
+    start <- max(1L, min(minimum - 20L, n - width + 1L))
     shown <- seq.int(start, length.out = width)
   } else if (is.numeric(iterations) && !is.complex(iterations) &&
              length(iterations) > 0L && all(is.finite(iterations)) &&
@@ -117,10 +132,18 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
     symbols <- c(symbols, 16)
     line_types <- c(line_types, 0)
   }
-  graphics::legend('topright', inset = 0.02, legend = labels,
-                   col = colors, text.col = 'gray30', pch = symbols,
-                   pt.bg = band_color, pt.cex = 1.1, lty = line_types,
-                   lwd = 1.5, cex = 0.8, y.intersp = 1.3, bty = 'n')
+  x_data <- shown
+  y_data <- values
+  if (draw_pairs) {
+    x_data <- c(x_data, pairs$iteration, pairs$iteration)
+    y_data <- c(y_data, pairs$lower, pairs$upper)
+  }
+  legend_args <- list(inset = 0.02, legend = labels, col = colors,
+                      text.col = 'gray30', pch = symbols, pt.bg = band_color,
+                      pt.cex = 1.1, lty = line_types, lwd = 1.5, cex = 0.8,
+                      y.intersp = 1.3, bty = 'n')
+  do.call(graphics::legend,
+          c(list(legend_corner(x_data, y_data, legend_args)), legend_args))
   invisible(data.frame(iteration = shown, objective = objective[shown]))
 }
 

@@ -13,11 +13,11 @@ plot_objective(x, iterations = "all", main = NULL)
 \code{"near_optimum"}, or a vector of iteration numbers such as
 \code{1:1000}. Positive integer indices beyond the recorded history are
 ignored; at least one requested iteration must exist.
-\code{"near_optimum"} shows a window centered on the first
-smallest finite recorded objective value. The window contains 10\% of the
-recorded iterations (rounded up), with a minimum of 10, or all iterations
-for shorter histories. At either boundary the window shifts to stay within
-the recorded history. Both axes adjust to the selected window.}
+\code{"near_optimum"} shows up to 41 consecutive records centered on the
+first smallest finite recorded objective value (20 before and 20 after).
+At either boundary the window shifts to stay within the recorded history;
+histories shorter than 41 records are shown in full. Both axes adjust to
+the selected window. Use numeric iteration indices for a different width.}
 
 \item{main}{Title of the plot. By default, \code{"Objective function"},
 with \code{"(near optimum)"} added when \code{iterations = "near_optimum"}.}
@@ -38,6 +38,7 @@ band spanning each pair of consecutive objective values, so that values
 that alternate between iterations remain visible, and a line at their
 average. Each pair is placed halfway between its two iteration numbers.
 Only actual adjacent pairs are used; missing values interrupt the display.
+The legend is placed in the corner of the plot with the fewest data points.
 }
 \examples{
 fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,
