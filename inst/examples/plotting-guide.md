@@ -7,16 +7,16 @@ cannot establish convergence or statistical superiority.
 
 ```r
 plot_objective(fit)                                # All iterations
-plot_objective(fit, iterations = "near_optimum")   # From the smallest value onward
+plot_objective(fit, iterations = "near_optimum")   # Around the smallest recorded value
 plot_objective(fit, iterations = 1:500)            # A specific range
 ```
 
-`"near_optimum"` starts at the iteration with the smallest objective value (or,
-if that is within the last 10% of the iterations, shows the last 10%) and
-draws a shaded band spanning each pair of consecutive values, so values that
-alternate between iterations remain visible, with a line at their average. Its
-horizontal axis matches the full history unless the final stretch is shown;
-in that case the horizontal axis also zooms to the selected stretch.
+`"near_optimum"` centers a window on the first smallest finite recorded
+objective value. It shows 10% of the recorded iterations (rounded up), at least
+10, or the full history if fewer than 10 were recorded. At either end the window
+shifts to stay within the history. Both axes zoom to the selected window.
+The shaded band spans consecutive objective values and the line shows their
+pairwise average; the band is not an uncertainty interval.
 
 ## CV heatmaps
 

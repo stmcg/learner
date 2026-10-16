@@ -172,6 +172,31 @@ dim(direct$dlearner_estimate)
 #> [1] 100  50
 ```
 
+### Compare source choices
+
+For this simulated dataset, the true target signal is available. Compare
+D-LEARNER fits at the same rank to isolate the choice of source spaces:
+
+``` r
+estimates <- list(
+  A_only = dlearner(sources$A, target, r = 3)$dlearner_estimate,
+  B_only = dlearner(sources$B, target, r = 3)$dlearner_estimate,
+  Weighted_A_B = direct$dlearner_estimate
+)
+source_errors <- vapply(estimates, function(estimate) {
+  norm(estimate - dat_multisource$Theta_target, "F")
+}, numeric(1))
+round(source_errors, 3)
+#>       A_only       B_only Weighted_A_B
+#>        2.323       17.214        5.324
+```
+
+Lower Frobenius error is better. In this example, source A alone gives
+the smallest error, while the weighted combination improves on source B
+alone. The weights 0.7/0.3 are illustrative, not optimized. These
+results describe one simulated dataset; they are not CV errors or
+evidence that combining sources always improves estimation.
+
 ### Latent spaces and contributions
 
 Compare the target and source spaces, or inspect which variables

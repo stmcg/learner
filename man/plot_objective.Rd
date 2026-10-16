@@ -11,11 +11,11 @@ plot_objective(x, iterations = "all", main = NULL)
 
 \item{iterations}{Iterations to show: \code{"all"} (the default),
 \code{"near_optimum"}, or a vector of iteration numbers such as
-\code{1:1000}. \code{"near_optimum"} shows the iterations from the one
-with the smallest objective value through the last iteration. If the
-smallest value occurs within the last 10\% of the iterations (and at least
-the last 10), the last 10\% of the iterations are shown instead. The
-horizontal axis is the same as for \code{"all"}, except in that case.}
+\code{1:1000}. \code{"near_optimum"} shows a window centered on the first
+smallest finite recorded objective value. The window contains 10\% of the
+recorded iterations (rounded up), with a minimum of 10, or all iterations
+for shorter histories. At either boundary the window shifts to stay within
+the recorded history. Both axes adjust to the selected window.}
 
 \item{main}{Title of the plot. By default, \code{"Objective function"},
 with \code{"(near optimum)"} added when \code{iterations = "near_optimum"}.}

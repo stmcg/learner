@@ -6,11 +6,11 @@
 #' @param x A result returned by \code{learner}.
 #' @param iterations Iterations to show: \code{"all"} (the default),
 #' \code{"near_optimum"}, or a vector of iteration numbers such as
-#' \code{1:1000}. \code{"near_optimum"} shows the iterations from the one
-#' with the smallest objective value through the last iteration. If the
-#' smallest value occurs within the last 10\% of the iterations (and at least
-#' the last 10), the last 10\% of the iterations are shown instead. The
-#' horizontal axis is the same as for \code{"all"}, except in that case.
+#' \code{1:1000}. \code{"near_optimum"} shows a window centered on the first
+#' smallest finite recorded objective value. The window contains 10\% of the
+#' recorded iterations (rounded up), with a minimum of 10, or all iterations
+#' for shorter histories. At either boundary the window shifts to stay within
+#' the recorded history. Both axes adjust to the selected window.
 #' @param main Title of the plot. By default, \code{"Objective function"},
 #' with \code{"(near optimum)"} added when \code{iterations = "near_optimum"}.
 #'
@@ -43,15 +43,12 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
   finite <- is.finite(objective)
   minimum <- which.min(replace(objective, !finite, Inf))
   near <- identical(iterations, 'near_optimum')
-  tail_view <- FALSE
   if (identical(iterations, 'all')) {
     shown <- seq_len(n)
   } else if (near) {
-    # If the minimum is the end of the history, show its final stretch instead.
-    tail_length <- max(10L, ceiling(0.1 * n))
-    start <- min(minimum, max(1L, n - tail_length + 1L))
-    tail_view <- start != minimum
-    shown <- seq.int(start, n)
+    width <- min(n, max(10L, ceiling(0.1 * n)))
+    start <- max(1L, min(minimum - floor((width - 1L) / 2), n - width + 1L))
+    shown <- seq.int(start, length.out = width)
   } else if (is.numeric(iterations) && length(iterations) > 0L &&
              all(iterations %in% seq_len(n))) {
     shown <- sort(unique(as.integer(iterations)))
@@ -69,9 +66,7 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
 
   old <- graphics::par(mar = c(5, 4.5, 4, 1.5))
   on.exit(graphics::par(old), add = TRUE)
-  # Near the optimum, keep the horizontal axis of the full history so that the
-  # two plots line up; only the vertical axis is zoomed.
-  xlim <- if (near && !tail_view) c(1, n) else range(shown)
+  xlim <- range(shown)
   graphics::plot(shown, values, type = 'n', xlim = xlim, xlab = 'Iteration',
                  ylab = 'Objective value', bty = 'l')
   graphics::title(main, line = 2)

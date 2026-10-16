@@ -11,26 +11,27 @@ test_that('objective plots show the requested iterations', {
   expect_equal(result$value$objective, fit$objective_values)
   expect_equal(plot_objective(fit, iterations = 2:4)$iteration, 2:4)
   expect_equal(plot_objective(fit, iterations = c(5, 2, 2))$iteration, c(2, 5))
-  # From the smallest objective value (iteration 31) through the last iteration.
-  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 31:130)
+  # A 13-iteration window centered on the first minimum at iteration 31.
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 25:37)
   expect_identical(fit, original)
 })
 
-test_that('near-optimum plots share the horizontal axis of the full history', {
+test_that('near-optimum windows include both sides and zoom the horizontal axis', {
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
-  fit <- list(objective_values = c(seq(100, 10, length.out = 30), rep(c(9, 9.5), 50)),
-              convergence_criterion = 2L)
+  # Interior minimum followed by a long increase.
+  fit <- list(objective_values = (seq_len(101) - 51)^2)
   plot_objective(fit)
-  usr_all <- graphics::par('usr')[1:2]
-  plot_objective(fit, iterations = 'near_optimum')
-  expect_equal(graphics::par('usr')[1:2], usr_all)
-  # A history still decreasing at the end shows its final stretch with its own axis.
-  fit <- list(objective_values = seq(100, 10, length.out = 100), convergence_criterion = 1L)
-  plot_objective(fit)
-  usr_all <- graphics::par('usr')[1:2]
-  plot_objective(fit, iterations = 'near_optimum')
-  expect_gt(graphics::par('usr')[1], usr_all[1] + 50)
+  full <- graphics::par('usr')[1:2]
+  result <- plot_objective(fit, iterations = 'near_optimum')
+  expect_equal(result$iteration, 46:56)
+  expect_gt(graphics::par('usr')[1], full[1])
+  expect_lt(graphics::par('usr')[2], full[2])
+  # At the beginning, shift the window right; exact ties use the first minimum.
+  fit$objective_values <- seq_len(100)
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 1:10)
+  fit$objective_values <- rep(1, 100)
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 1:10)
 })
 
 test_that('near-optimum plots show the final stretch when the minimum is at the end', {
@@ -54,7 +55,7 @@ test_that('near-optimum plots handle alternating and missing values and keep gra
   old <- graphics::par('mar')
   result <- plot_objective(fit)
   expect_equal(result$iteration, seq_along(values))
-  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 41:440)
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 20:63)
   expect_equal(graphics::par('mar'), old)
 })
 
