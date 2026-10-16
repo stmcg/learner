@@ -6,6 +6,8 @@
   populations with independently generated noise.
 * Add separate row- and column-space penalties in `learner()` and
   cross-validation over these penalties in `cv.learner()`.
+* Add plotting functions for objective function values, cross-validation
+  results, population latent spaces, and variable contributions.
 
 ### learner version 1.0.0 (2025-03-02)
 
