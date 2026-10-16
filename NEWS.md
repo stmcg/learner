@@ -1,3 +1,12 @@
+### learner version 1.1.0 (unreleased)
+
+* Add support for multiple source populations and optional source weights in
+  `learner()`, `dlearner()`, and `cv.learner()`.
+* Add `dat_multisource`, an example dataset with one target and two source
+  populations with independently generated noise.
+* Add separate row- and column-space penalties in `learner()` and
+  cross-validation over these penalties in `cv.learner()`.
+
 ### learner version 1.0.0 (2025-03-02)
 
 * Re-implemented most of `learner` and `cv.learner` in Rcpp, resulting in significant speed-ups
