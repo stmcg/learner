@@ -30,8 +30,15 @@ Install the latest version from GitHub:
 ``` r
 # install.packages("devtools")
 devtools::install_github("stmcg/learner")
-# Optional: required for plot_cv(), but not for fitting or the other plots.
-install.packages("ggplot2") # version 3.4.0 or later
+```
+
+The multiple-source features and plotting functions below are not in the
+CRAN release yet; install the GitHub version to run these examples.
+`plot_cv()` also requires ggplot2 (version 3.4.0 or later), which is
+optional for fitting and for the other plots:
+
+``` r
+install.packages("ggplot2")
 ```
 
 ## One source population
@@ -146,8 +153,11 @@ Cross-validation error across the candidate penalties.
 </div>
 
 A selected value on a grid boundary can be a reason to expand that grid.
-CV scores can also come from fits that reached the iteration limit, so
-inspect the optimization settings before interpreting the selection.
+Here all three selected values are at the upper end of their grids; the
+grids are kept small to keep the example quick, but an analysis would
+expand them. CV scores can also come from fits that reached the
+iteration limit, so inspect the optimization settings before
+interpreting the selection.
 
 ### Refit with the selected penalties
 
@@ -158,11 +168,15 @@ fit <- learner(
   Y_source = sources, Y_target = target, r = cv$r, source_weights = weights,
   lambda_1_row = cv$lambda_1_row_min,
   lambda_1_col = cv$lambda_1_col_min, lambda_2 = cv$lambda_2_min,
-  step_size = 0.0003, control = list(max_iter = 5000)
+  step_size = 0.0003, control = list(max_iter = 2000)
 )
 fit$convergence_criterion
 #> [1] 1
 ```
+
+The stopping code `1` means that the objective-change threshold was met
+(`2`: the iteration limit was reached; `3`: excessive objective growth
+or a non-finite update; see `?learner`).
 
 D-LEARNER accepts the same source list and weights:
 
@@ -175,10 +189,12 @@ dim(direct$dlearner_estimate)
 ### Compare source choices
 
 For this simulated dataset, the true target signal is available. Compare
-D-LEARNER fits at the same rank to isolate the choice of source spaces:
+D-LEARNER fits at the same rank to isolate the choice of source spaces,
+together with the truncated SVD of the target alone as a baseline:
 
 ``` r
 estimates <- list(
+  Target_only = dlearner(target, target, r = 3)$dlearner_estimate,
   A_only = dlearner(sources$A, target, r = 3)$dlearner_estimate,
   B_only = dlearner(sources$B, target, r = 3)$dlearner_estimate,
   Weighted_A_B = direct$dlearner_estimate
@@ -187,15 +203,16 @@ source_errors <- vapply(estimates, function(estimate) {
   norm(estimate - dat_multisource$Theta_target, "F")
 }, numeric(1))
 round(source_errors, 3)
-#>       A_only       B_only Weighted_A_B
-#>        2.323       17.214        5.324
+#>  Target_only       A_only       B_only Weighted_A_B
+#>        6.238        2.323       17.214        5.324
 ```
 
 Lower Frobenius error is better. In this example, source A alone gives
-the smallest error, while the weighted combination improves on source B
-alone. The weights 0.7/0.3 are illustrative, not optimized. These
-results describe one simulated dataset; they are not CV errors or
-evidence that combining sources always improves estimation.
+the smallest error. The weighted combination improves on the target
+alone, while source B alone is worse than ignoring the sources. The
+weights 0.7/0.3 are illustrative, not optimized. These results describe
+one simulated dataset; they are not CV errors or evidence that combining
+sources always improves estimation.
 
 ### Latent spaces and contributions
 
