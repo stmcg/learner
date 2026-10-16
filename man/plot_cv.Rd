@@ -39,7 +39,7 @@ SSE. Missing target entries must not be included in this count.}
 \code{NULL} draws all panels. Not used in common-penalty mode.}
 
 \item{log_labels}{Logical scalar. If TRUE, display base-10 logarithms of
-the candidates on the heatmap axes, as in the paper's plotting script.
+the candidates on the heatmap axes.
 All candidates on those axes must be strictly positive. Log labels are
 rounded to two decimal places. Defaults to FALSE.}
 

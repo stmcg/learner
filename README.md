@@ -1,4 +1,3 @@
-
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 <!-- badges: start -->
 
@@ -12,121 +11,177 @@ coverage](https://codecov.io/gh/stmcg/learner/graph/badge.svg)](https://app.code
 # learner
 
 The `learner` package implements transfer learning methods for low-rank
-matrix estimation. These methods leverage similarity in the latent row
-and column spaces between the source and target populations to improve
-estimation in the target population. The methods include the LatEnt
-spAce-based tRaNsfer lEaRning (LEARNER) method and the direct projection
-LEARNER (D-LEARNER) method described by [McGrath et
-al. (2024)](https://doi.org/10.48550/arXiv.2412.20605).
+matrix estimation. These methods use similarity in the latent row and
+column spaces of source and target populations to improve estimation in
+the target population. The methods include LatEnt spAce-based tRaNsfer
+lEaRning (LEARNER) and direct projection LEARNER (D-LEARNER), described
+by [McGrath et al. (2024)](https://doi.org/10.48550/arXiv.2412.20605).
 
 ## Installation
 
-You can install the released version of `learner` from
-[CRAN](https://CRAN.R-project.org/package=learner) with:
+Install the released version from CRAN:
 
 ``` r
 install.packages("learner")
 ```
 
-You can install the development version of `learner` from
-[GitHub](https://github.com/stmcg/learner) with:
+The examples below use the multiple-source and plotting extensions on
+the `plot-diagnostics` development branch:
 
 ``` r
-# install.packages("devtools")
-devtools::install_github("stmcg/learner")
+# install.packages("remotes")
+remotes::install_github("stmcg/learner", ref = "plot-diagnostics")
+# Optional: required for plot_cv(), but not for fitting or the other plots.
+install.packages("ggplot2") # version 3.4.0 or later
 ```
 
-## Example
+## One source population
 
-We illustrate an example of how `learner` can be used. We first load the
-package.
+`dat_highsim` contains a simulated source and target with similar latent
+spaces. LEARNER fits the target while penalizing departures from the
+source spaces. Here `lambda_1` controls both space penalties, and
+`lambda_2` controls the balance between the two target factors.
 
 ``` r
 library(learner)
+fit_single <- learner(
+  Y_source = dat_highsim$Y_source, Y_target = dat_highsim$Y_target,
+  r = 3, lambda_1 = 10, lambda_2 = 1, step_size = 0.003,
+  control = list(max_iter = 2000)
+)
+dim(fit_single$learner_estimate)
+#> [1] 100  50
 ```
 
-In this illustration, we will use one of the toy data sets in the
-package (`dat_highsim`) that has a high degree of similarity between the
-latent spaces of the source and target populations. The object
-`dat_highsim` is a list which contains the observed source population
-data matrix `Y_source` and the target population data matrix `Y_target`.
-Since the data was simulated, the true values of the matrices are
-included in `dat_highsim` as `Theta_source` and `Theta_target`.
-
-#### LEARNER Method
-
-We can apply the LEARNER method via the `learner` function.
-
-This method allows for flexible patterns of heterogeneity across the
-source and target populations. It consequently requires specifying the
-tuning parameters `lambda_1` and `lambda_2` which control the degree of
-transfer learning between the populations. These values can be selected
-based on cross-validation via the `cv.learner` function. For example, we
-can specify candidate values of 1, 10, and 100 for `lambda_1` and
-`lambda_2` and select the optimal values based on cross-validation as
-follows:
+D-LEARNER projects the target data directly onto the source spaces,
+without iterative optimization or penalty selection:
 
 ``` r
-res_cv.learner <- cv.learner(Y_source = dat_highsim$Y_source, 
-                             Y_target = dat_highsim$Y_target, 
-                             lambda_1_all = c(1, 10, 100), 
-                             lambda_2_all = c(1, 10, 100), 
-                             step_size = 0.003)
-res_cv.learner$lambda_1_min
-#> [1] 100
-res_cv.learner$lambda_2_min
+direct_single <- dlearner(dat_highsim$Y_source, dat_highsim$Y_target, r = 3)
+```
+
+## Multiple sources and separate penalties
+
+`dat_multisource` contains one target and two sources, each with 100
+rows and 50 columns. The true signals have rank 3 and share their latent
+spaces. Independent normal noise is added to each population: the noise
+variances are 0.10 for the target, 0.01 for source A, and 0.50 for
+source B. The true signal matrices are also included, but are not needed
+for fitting.
+
+Pass the sources as a list. The weights below are illustrative choices;
+they are held fixed during cross-validation. Larger row or column
+penalties encourage the corresponding target factors to follow the
+combined source spaces more closely.
+
+``` r
+sources <- dat_multisource$Y_source
+target <- dat_multisource$Y_target
+weights <- c(0.7, 0.3)
+row_grid <- c(0, 1, 10)
+col_grid <- c(0, 1, 3)
+balance_grid <- c(0.1, 1)
+```
+
+Select penalties by cross-validation. This small grid and iteration
+budget keep the example quick; use suitable grids and optimization
+settings for an analysis.
+
+``` r
+set.seed(815)
+cv <- cv.learner(
+  Y_source = sources, Y_target = target, r = 3, source_weights = weights,
+  lambda_1_row_all = row_grid, lambda_1_col_all = col_grid,
+  lambda_2_all = balance_grid, n_folds = 3, step_size = 0.0003,
+  control = list(max_iter = 2000)
+)
+c(row = cv$lambda_1_row_min, column = cv$lambda_1_col_min,
+  balance = cv$lambda_2_min)
+#>     row  column balance
+#>      10       3       1
+```
+
+For a common space penalty, supply `lambda_1_all` instead of the
+separate row and column grids. Cross-validation selects penalties, not
+the rank or source weights.
+
+### Cross-validation results
+
+The heatmap shows how much the CV error increases above its minimum,
+with a black box marking the selected combination. Supplying
+`n_observed` converts the stored sums of squared errors to mean squared
+errors (MSE).
+
+``` r
+plot_cv(
+  cv, lambda_1_row_all = row_grid, lambda_1_col_all = col_grid,
+  lambda_2_all = balance_grid, n_observed = sum(!is.na(target))
+)
+```
+
+<div class="figure">
+
+<img src="README_files/figure-gfm/cv-heatmap-1.png" alt="Cross-validation error across the candidate penalties." width="100%" />
+<p class="caption">
+Cross-validation error across the candidate penalties.
+</p>
+
+</div>
+
+A selected value on a grid boundary can be a reason to expand that grid.
+CV scores can also come from fits that reached the iteration limit, so
+inspect the optimization settings before interpreting the selection.
+
+### Refit and inspect optimization
+
+Refit using the selected penalties and all observed target entries:
+
+``` r
+fit <- learner(
+  Y_source = sources, Y_target = target, r = cv$r, source_weights = weights,
+  lambda_1_row = cv$lambda_1_row_min,
+  lambda_1_col = cv$lambda_1_col_min, lambda_2 = cv$lambda_2_min,
+  step_size = 0.0003, control = list(max_iter = 5000)
+)
+fit$convergence_criterion
 #> [1] 1
 ```
 
-Next, we apply the `learner` function with these values of `lambda_1`
-and `lambda_2`:
-
 ``` r
-res_learner <- learner(Y_source = dat_highsim$Y_source, 
-                       Y_target = dat_highsim$Y_target,
-                       lambda_1 = 100, lambda_2 = 1, 
-                       step_size = 0.003)
+plot_objective(fit, iterations = "near_optimum")
 ```
 
-The LEARNER estimate is given by the `learner_estimate` component in the
-output of the `learner` function, e.g.,
+<div class="figure">
+
+<img src="README_files/figure-gfm/objective-history-1.png" alt="Objective function values near the optimum for the refitted target model." width="100%" />
+<p class="caption">
+Objective function values near the optimum for the refitted target
+model.
+</p>
+
+</div>
+
+Use `iterations = "all"` (the default) for the full history, or a vector
+such as `1:500` for a specific range.
+
+D-LEARNER accepts the same source list and weights:
 
 ``` r
-res_learner$learner_estimate[1:5, 1:5]
-#>            [,1]        [,2]       [,3]         [,4]       [,5]
-#> [1,]  0.1468889 -1.63414688  1.1857308  0.008093962  0.2196070
-#> [2,]  0.1087766 -0.24392770 -1.0061737 -0.058119721 -0.4012974
-#> [3,] -0.6213028  1.04206753 -0.6907776  0.905709331 -0.5324437
-#> [4,]  1.5811588 -3.00001490  0.3978080 -2.124285120  0.6909386
-#> [5,]  0.5046133  0.01845138 -1.4798209 -0.765601712 -0.2230227
+direct <- dlearner(sources, target, r = 3, source_weights = weights)
+dim(direct$dlearner_estimate)
+#> [1] 100  50
 ```
 
-We can check the convergence of the numerical optimization algorithm by
-plotting the values of the objective function at each iteration:
+### Latent spaces and contributions
+
+Compare the target and source spaces, or inspect which variables
+contribute to the components of a fitted target matrix:
 
 ``` r
-plot(res_learner$objective_values, 
-     xlab = 'Iteration', ylab = 'Objective function',
-     type = 'l', col = 'blue', lwd = 2)
+plot_source_spaces(target, sources, r = 3)
+plot_contributions(fit)
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-6-1.png" width="75%" />
-
-#### D-LEARNER Method
-
-We can apply the D-LEARNER method via the `dlearner` function. This
-method makes stronger assumptions on the heterogeneity across the source
-and target populations. It consequently does not rely on choosing tuning
-parameters. The `dlearner` function can be applied as follows:
-
-``` r
-res_dlearner <- dlearner(Y_source = dat_highsim$Y_source, 
-                         Y_target = dat_highsim$Y_target)
-res_dlearner$dlearner_estimate[1:5, 1:5]
-#>            [,1]        [,2]        [,3]         [,4]       [,5]
-#> [1,]  0.0959171 -1.72143637  1.15500149  0.005478273  0.3258085
-#> [2,]  0.1077137 -0.32243480 -1.03557177 -0.108195636 -0.4093049
-#> [3,] -0.7237275  0.86634922 -0.43528206  1.105802194 -0.5961351
-#> [4,]  1.6347696 -2.91985925  0.04876288 -2.357504089  0.8127403
-#> [5,]  0.4757450  0.05665543 -1.50373470 -0.744076401 -0.2876033
-```
+See `?learner`, `?cv.learner`, `?dlearner`, and `?dat_multisource` for
+details. More runnable examples are included in `inst/examples/` in the
+source repository.

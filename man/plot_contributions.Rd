@@ -47,8 +47,8 @@ displayed \code{row_index} and \code{column_index}, \code{limits}, and
 in columns; all values are returned without display clipping.
 }
 \description{
-Show squared singular-vector entries for a fitted target matrix, following
-Figure 5 of the LEARNER paper. Higher contribution scores are darker red.
+Show which rows and columns contribute to each latent component of a fitted
+target matrix, using squared singular-vector entries. Higher scores are darker red.
 }
 \details{
 An SVD of the estimated matrix supplies U and V. Row scores are U squared
@@ -64,6 +64,6 @@ subspaces can change component-specific scores. Components from different
 populations are not automatically aligned or given biological labels.
 }
 \examples{
-fit <- dlearner(dat_highsim$Y_source,dat_highsim$Y_target,r=3)
+fit <- dlearner(dat_multisource$Y_source, dat_multisource$Y_target, r = 3)
 plot_contributions(fit,max_display=50)
 }

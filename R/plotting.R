@@ -1,99 +1,116 @@
-#' Plot the recorded LEARNER objective history
+#' Plot the objective function values of a LEARNER fit
 #'
-#' Inspect the objective values returned by \code{learner()}. Optionally show
-#' the last updates beside the full history to reveal small oscillations.
+#' Plots the values of the objective function at each iteration of the
+#' numerical optimization algorithm in \code{learner}.
 #'
-#' @param x A result returned by \code{learner()}.
-#' @param last Optional positive integer specifying the number of final updates
-#' to show in a second panel. \code{NULL} draws only the full history.
-#' @param main Character scalar used as the title of the full-history panel.
+#' @param x A result returned by \code{learner}.
+#' @param iterations Iterations to show: \code{"all"} (the default),
+#' \code{"near_optimum"}, or a vector of iteration numbers such as
+#' \code{1:1000}. \code{"near_optimum"} shows the iterations from the one
+#' with the smallest objective value through the last iteration. If the
+#' smallest value occurs within the last 10\% of the iterations (and at least
+#' the last 10), the last 10\% of the iterations are shown instead. The
+#' horizontal axis is the same as for \code{"all"}, except in that case.
+#' @param main Title of the plot. By default, \code{"Objective function"},
+#' with \code{"(near optimum)"} added when \code{iterations = "near_optimum"}.
 #'
-#' @return Invisibly, a list containing \code{iteration}, \code{objective},
-#' \code{last_indices}, \code{recorded_min_index}, and
-#' \code{convergence_criterion}. Plotting does not modify \code{x}.
+#' @return Invisibly, a data frame of the plotted iterations and objective
+#' values.
 #'
-#' @details
-#' Update numbers start at one. The initialization objective is not stored in
-#' \code{x$objective_values}. The marked minimum is therefore the lowest
-#' \emph{recorded} objective, not necessarily the objective of the returned
-#' estimate, which can retain the initialization. Panels use their own vertical
-#' scales. A stopping code of one indicates the objective-change rule was met;
-#' it does not establish a global optimum or stability of the factors.
-#'
-#' Non-finite recorded values are shown as red triangles at the top of a panel,
-#' with a legend; their vertical positions do not represent objective values.
-#' At least one recorded value must be finite. Graphics parameters are restored
-#' on exit; this function sets its own panel arrangement.
+#' @details The red point marks the smallest objective value, which is also
+#' given above the plot. The objective value at the initialization is not
+#' included. With \code{iterations = "near_optimum"}, the plot shows a shaded
+#' band spanning each pair of consecutive objective values, so that values
+#' that alternate between iterations remain visible, and a line at their
+#' average.
 #'
 #' @examples
 #' fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,
-#'                r = 3, lambda_1 = 1, lambda_2 = 1, step_size = 0.0003,
-#'                control = list(max_iter = 100))
-#' plot_objective(fit, last = 30)
+#'                r = 3, lambda_1 = 1, lambda_2 = 1, step_size = 0.003,
+#'                control = list(max_iter = 1000))
+#' plot_objective(fit)
+#' plot_objective(fit, iterations = "near_optimum")
+#' plot_objective(fit, iterations = 1:100)
 #'
 #' @export
-plot_objective <- function(x, last = NULL, main = "Recorded objective history") {
-  if (!is.list(x) || !is.numeric(x$objective_values) ||
-      is.complex(x$objective_values) || length(x$objective_values) == 0L ||
-      !is.null(dim(x$objective_values))) {
-    stop('x must contain a nonempty numeric objective_values vector.')
-  }
+plot_objective <- function(x, iterations = "all", main = NULL) {
   objective <- x$objective_values
+  if (!is.numeric(objective) || length(objective) == 0L ||
+      !any(is.finite(objective))) {
+    stop('x must be a result returned by learner().')
+  }
+  n <- length(objective)
   finite <- is.finite(objective)
-  if (!any(finite)) stop('No finite objective values are available to plot.')
-  if (!is.null(last)) validate_count(last, 'last')
-  if (!is.character(main) || length(main) != 1L || is.na(main)) {
-    stop('main must be a nonmissing character scalar.')
+  minimum <- which.min(replace(objective, !finite, Inf))
+  near <- identical(iterations, 'near_optimum')
+  tail_view <- FALSE
+  if (identical(iterations, 'all')) {
+    shown <- seq_len(n)
+  } else if (near) {
+    # If the minimum is the end of the history, show its final stretch instead.
+    tail_length <- max(10L, ceiling(0.1 * n))
+    start <- min(minimum, max(1L, n - tail_length + 1L))
+    tail_view <- start != minimum
+    shown <- seq.int(start, n)
+  } else if (is.numeric(iterations) && length(iterations) > 0L &&
+             all(iterations %in% seq_len(n))) {
+    shown <- sort(unique(as.integer(iterations)))
+  } else {
+    stop("iterations must be 'all', 'near_optimum', or iteration numbers between 1 and ",
+         n, '.')
   }
-  code <- x$convergence_criterion
-  if (!is.numeric(code) || length(code) != 1L || is.na(code) ||
-      !(code %in% 1:3)) {
-    stop('x must contain a convergence_criterion of 1, 2, or 3.')
+  if (!any(finite[shown])) {
+    stop('The selected iterations contain no finite objective values; choose a different range.')
   }
-  status <- c('Objective-change rule met', 'Iteration limit reached',
-              'Excessive growth or numerical breakdown')[code]
-  indices <- seq_along(objective)
-  last_indices <- if (is.null(last)) integer() else
-    seq.int(max(1L, length(objective) - last + 1L), length(objective))
-  safe <- objective
-  safe[!finite] <- Inf
-  minimum <- which.min(safe)
-  old <- graphics::par(no.readonly = TRUE)
+  if (is.null(main)) {
+    main <- if (near) 'Objective function (near optimum)' else 'Objective function'
+  }
+  values <- replace(objective[shown], !finite[shown], NA_real_)
+
+  old <- graphics::par(mar = c(5, 4.5, 4, 1.5))
   on.exit(graphics::par(old), add = TRUE)
-  graphics::par(mfrow = c(1, if (is.null(last)) 1 else 2),
-                mar = c(4.5, 4.5, 3.5, 1), oma = c(2.5, 0, 1, 0))
-  draw <- function(index, title) {
-    y <- objective[index]
-    available <- is.finite(y)
-    limits <- if (any(available)) range(y[available]) else range(objective[finite])
-    if (diff(limits) == 0) {
-      pad <- max(abs(limits[1]) * 0.01, 1e-8)
-      limits <- limits + c(-pad, pad)
-    }
-    y[!available] <- NA_real_
-    graphics::plot(index, y, type = if (sum(available) == 1) 'b' else 'l',
-                   col = '#2166AC', lwd = 1.5, xlab = 'Iteration',
-                   ylab = 'Objective value', main = title, ylim = limits)
-    if (minimum %in% index) {
-      graphics::points(minimum, objective[minimum], pch = 4, lwd = 2,
-                       col = '#202020', cex = 1.2)
-    }
-    if (any(!available)) {
-      graphics::points(index[!available], rep(limits[2], sum(!available)),
-                       pch = 17, col = '#B2182B')
-      graphics::legend('topright', 'Non-finite update (position only)',
-                       pch = 17, col = '#B2182B', bty = 'n', cex = 0.7)
-    }
+  # Near the optimum, keep the horizontal axis of the full history so that the
+  # two plots line up; only the vertical axis is zoomed.
+  xlim <- if (near && !tail_view) c(1, n) else range(shown)
+  graphics::plot(shown, values, type = 'n', xlim = xlim, xlab = 'Iteration',
+                 ylab = 'Objective value', bty = 'l')
+  graphics::title(main, line = 2)
+  graphics::mtext(paste0('Minimum: ', format(objective[minimum], digits = 6),
+                         ' at iteration ', minimum),
+                  side = 3, line = 0.6, cex = 0.8, col = 'gray30')
+  if (near && length(shown) > 1L) {
+    # The band spans each pair of consecutive values, so alternating values
+    # appear as a band rather than as dense vertical lines.
+    nxt <- c(values[-1], values[length(values)])  # the last value pairs with itself
+    keep <- !is.na(values) & !is.na(nxt)
+    graphics::polygon(c(shown[keep], rev(shown[keep])),
+                      c(pmin(values, nxt)[keep], rev(pmax(values, nxt)[keep])),
+                      col = grDevices::adjustcolor('#2166AC', 0.4), border = NA)
+    graphics::lines(shown[keep], ((values + nxt) / 2)[keep], col = '#2166AC', lwd = 1.5)
+  } else {
+    graphics::lines(shown, values, col = '#2166AC', type = if (length(shown) == 1L) 'p' else 'l')
   }
-  draw(indices, main)
-  if (!is.null(last)) draw(last_indices, paste('Last', length(last_indices), 'updates'))
-  graphics::mtext(paste0('Stop code ', code, ': ', status), outer = TRUE,
-                  side = 3, line = -0.5, cex = 0.85)
-  graphics::mtext('X: minimum recorded objective; initialization is not included.',
-                  outer = TRUE, side = 1, line = 0.7, cex = 0.8)
-  invisible(list(iteration = indices, objective = objective,
-                 last_indices = last_indices, recorded_min_index = minimum,
-                 convergence_criterion = code))
+  if (minimum %in% shown) {
+    graphics::points(minimum, objective[minimum], pch = 16, cex = 0.9, col = '#B2182B')
+  }
+  # Symbol keys distinguish the band, mean line, and minimum without colored text.
+  band_color <- grDevices::adjustcolor('#2166AC', 0.4)
+  labels <- if (near && length(shown) > 1L)
+    c('Consecutive-iteration range', 'Pairwise average') else 'Objective value'
+  colors <- if (near && length(shown) > 1L) c(band_color, '#2166AC') else '#2166AC'
+  symbols <- if (near && length(shown) > 1L) c(22, NA) else NA
+  line_types <- if (near && length(shown) > 1L) c(0, 1) else 1
+  if (minimum %in% shown) {
+    labels <- c(labels, 'Minimum recorded objective')
+    colors <- c(colors, '#B2182B')
+    symbols <- c(symbols, 16)
+    line_types <- c(line_types, 0)
+  }
+  graphics::legend('topright', inset = 0.02, legend = labels,
+                   col = colors, text.col = 'gray30', pch = symbols,
+                   pt.bg = band_color, pt.cex = 1.1, lty = line_types,
+                   lwd = 1.5, cex = 0.8, y.intersp = 1.3, bty = 'n')
+  invisible(data.frame(iteration = shown, objective = objective[shown]))
 }
 
 #' Plot the LEARNER cross-validation scores
@@ -116,7 +133,7 @@ plot_objective <- function(x, last = NULL, main = "Recorded objective history") 
 #' \code{NULL} draws all panels. Not used in common-penalty mode.
 #'
 #' @param log_labels Logical scalar. If TRUE, display base-10 logarithms of
-#' the candidates on the heatmap axes, as in the paper's plotting script.
+#' the candidates on the heatmap axes.
 #' All candidates on those axes must be strictly positive. Log labels are
 #' rounded to two decimal places. Defaults to FALSE.
 #'

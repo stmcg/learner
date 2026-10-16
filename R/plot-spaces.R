@@ -52,7 +52,7 @@ draw_matrix_panel <- function(values, x_index, y_index, limits, colors, title, x
 #' Compare target and source latent spaces
 #'
 #' Plot column-space and row-space projection submatrices for the target and
-#' each source, following the layout of Figure 4 in the LEARNER paper.
+#' each source, to compare their retained latent spaces.
 #'
 #' @param Y_target Complete finite target matrix, or a completed estimate.
 #' Missing values are rejected; the function does not impute them.
@@ -87,9 +87,8 @@ draw_matrix_panel <- function(values, x_index, y_index, limits, colors, title, x
 #' singular values at the truncation boundary the retained space is not unique.
 #' The input order must already encode any desired phenotype or genomic ordering.
 #' @examples
-#' a <- dat_highsim$Y_source[1:20,1:10]
-#' y <- dat_highsim$Y_target[1:20,1:10]
-#' plot_source_spaces(y, list(A=a, B=a*1.1), r=2, max_display=20)
+#' plot_source_spaces(dat_multisource$Y_target, dat_multisource$Y_source,
+#'                    r = 3, max_display = 20)
 #' @export
 plot_source_spaces <- function(Y_target, Y_source, r, row_index=NULL, column_index=NULL,
                                max_display=200L, limits=NULL, row_label='Row index',
@@ -130,8 +129,8 @@ plot_source_spaces <- function(Y_target, Y_source, r, row_index=NULL, column_ind
 
 #' Plot variable contributions to latent components
 #'
-#' Show squared singular-vector entries for a fitted target matrix, following
-#' Figure 5 of the LEARNER paper. Higher contribution scores are darker red.
+#' Show which rows and columns contribute to each latent component of a fitted
+#' target matrix, using squared singular-vector entries. Higher scores are darker red.
 #'
 #' @param x A complete estimated matrix, a \code{learner()} result, or a
 #' \code{dlearner()} result. No rotation of the singular vectors is performed.
@@ -156,7 +155,7 @@ plot_source_spaces <- function(Y_target, Y_source, r, row_index=NULL, column_ind
 #' subspaces can change component-specific scores. Components from different
 #' populations are not automatically aligned or given biological labels.
 #' @examples
-#' fit <- dlearner(dat_highsim$Y_source,dat_highsim$Y_target,r=3)
+#' fit <- dlearner(dat_multisource$Y_source, dat_multisource$Y_target, r = 3)
 #' plot_contributions(fit,max_display=50)
 #' @export
 plot_contributions <- function(x, r=NULL, row_index=NULL, column_index=NULL,

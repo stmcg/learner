@@ -3,7 +3,22 @@
 These functions display existing fits or measured results. Plot appearance alone
 cannot establish convergence or statistical superiority.
 
-## CV heatmaps and profiles
+## Objective history
+
+```r
+plot_objective(fit)                                # All iterations
+plot_objective(fit, iterations = "near_optimum")   # From the smallest value onward
+plot_objective(fit, iterations = 1:500)            # A specific range
+```
+
+`"near_optimum"` starts at the iteration with the smallest objective value (or,
+if that is within the last 10% of the iterations, shows the last 10%) and
+draws a shaded band spanning each pair of consecutive values, so values that
+alternate between iterations remain visible, with a line at their average. Its
+horizontal axis matches the full history unless the final stretch is shown;
+in that case the horizontal axis also zooms to the selected stretch.
+
+## CV heatmaps
 
 Only the heatmap requires the optional package ggplot2 >= 3.4.0. Install it
 with `install.packages("ggplot2")`. Estimation and all other plotting functions
@@ -12,16 +27,12 @@ work without ggplot2.
 ```r
 plot_cv(cv, lambda_1_all = common_grid, lambda_2_all = balance_grid,
         n_observed = sum(!is.na(target)), log_labels = TRUE)
-plot_cv_profile(cv, lambda_1_all = common_grid, lambda_2_all = balance_grid,
-                n_observed = sum(!is.na(target)), log_labels = TRUE)
 ```
 
 Use the exact grids supplied to `cv.learner()`. With independent penalties,
 replace `lambda_1_all` with `lambda_1_row_all` and `lambda_1_col_all`.
-Heatmaps then have one panel per balance penalty; profiles have one panel per
-column penalty and one line per balance penalty. Zero candidates require
-`log_labels = FALSE`. Heatmap positions are equally spaced grid slots, whereas
-profile positions use the numerical candidate values (or their base-10 logs).
+Heatmaps then have one panel per balance penalty. Zero candidates require
+`log_labels = FALSE`. Heatmap positions are equally spaced grid slots.
 
 The CV object's `mse_all` contains pooled held-out squared-error sums. Supplying
 the total number of observed target entries converts these to MSE. Without that
@@ -48,7 +59,7 @@ ggplot2::ggsave("cv-heatmap.png", plot = result$plot, width = 8, height = 5.5, d
 For multiple pages, `result$plots` contains every ggplot page. Inspect exported
 images at the intended size to check text and legend placement.
 
-## Population latent spaces (paper Figure 4)
+## Population latent spaces
 
 ```r
 plot_source_spaces(target, list(A = source_A, B = source_B), r = 3)
@@ -65,7 +76,7 @@ or `max_display` limit plotting cost without changing the fitted spaces. All
 populations must have aligned variables in the same order. Labels default to
 Row index and Column index; use biological labels only when appropriate.
 
-## Variable contributions (paper Figure 5)
+## Variable contributions
 
 ```r
 plot_contributions(fit, r = 3)
@@ -78,24 +89,3 @@ factors, which include scaling. The plot uses separate color scales on the two
 sides and reports display clipping if explicit limits are supplied.
 These component-specific scores depend on basis choice in repeated singular
 subspaces; the function does not match components or assign biological meaning.
-
-## Method comparisons (paper-style simulation panels)
-
-```r
-plot_simulation_results(results, uncertainty = "none",
-                        ylab = "Frobenius estimation error")
-```
-
-Supply one row per replicate and method, with `scenario`, `rank`,
-`variance_ratio`, `method`, and `error`. For the paper's error definition, calculate
-`norm(estimate - truth, "F")`. Use the same metric throughout the input.
-The function computes means, sample SDs, SEs, and counts and returns the summary
-invisibly. Optional bars are one SD or SE, not confidence intervals.
-
-`plot-paper-displays.R` includes a small reproducible simulation with three
-replicates, fixed penalties, and ranks 2 and 3. It is an interface demonstration,
-not a reproduction of the paper or a tuned comparison of methods. It prints
-LEARNER stopping codes; code 1 means the current stopping rule was met, not that
-a global optimum has been established. For a formal study, choose and validate
-optimization and tuning procedures and use enough replications to assess
-uncertainty before drawing performance conclusions.

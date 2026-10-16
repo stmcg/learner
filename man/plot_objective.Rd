@@ -2,44 +2,46 @@
 % Please edit documentation in R/plotting.R
 \name{plot_objective}
 \alias{plot_objective}
-\title{Plot the recorded LEARNER objective history}
+\title{Plot the objective function values of a LEARNER fit}
 \usage{
-plot_objective(x, last = NULL, main = "Recorded objective history")
+plot_objective(x, iterations = "all", main = NULL)
 }
 \arguments{
-\item{x}{A result returned by \code{learner()}.}
+\item{x}{A result returned by \code{learner}.}
 
-\item{last}{Optional positive integer specifying the number of final updates
-to show in a second panel. \code{NULL} draws only the full history.}
+\item{iterations}{Iterations to show: \code{"all"} (the default),
+\code{"near_optimum"}, or a vector of iteration numbers such as
+\code{1:1000}. \code{"near_optimum"} shows the iterations from the one
+with the smallest objective value through the last iteration. If the
+smallest value occurs within the last 10\% of the iterations (and at least
+the last 10), the last 10\% of the iterations are shown instead. The
+horizontal axis is the same as for \code{"all"}, except in that case.}
 
-\item{main}{Character scalar used as the title of the full-history panel.}
+\item{main}{Title of the plot. By default, \code{"Objective function"},
+with \code{"(near optimum)"} added when \code{iterations = "near_optimum"}.}
 }
 \value{
-Invisibly, a list containing \code{iteration}, \code{objective},
-\code{last_indices}, \code{recorded_min_index}, and
-\code{convergence_criterion}. Plotting does not modify \code{x}.
+Invisibly, a data frame of the plotted iterations and objective
+values.
 }
 \description{
-Inspect the objective values returned by \code{learner()}. Optionally show
-the last updates beside the full history to reveal small oscillations.
+Plots the values of the objective function at each iteration of the
+numerical optimization algorithm in \code{learner}.
 }
 \details{
-Update numbers start at one. The initialization objective is not stored in
-\code{x$objective_values}. The marked minimum is therefore the lowest
-\emph{recorded} objective, not necessarily the objective of the returned
-estimate, which can retain the initialization. Panels use their own vertical
-scales. A stopping code of one indicates the objective-change rule was met;
-it does not establish a global optimum or stability of the factors.
-
-Non-finite recorded values are shown as red triangles at the top of a panel,
-with a legend; their vertical positions do not represent objective values.
-At least one recorded value must be finite. Graphics parameters are restored
-on exit; this function sets its own panel arrangement.
+The red point marks the smallest objective value, which is also
+given above the plot. The objective value at the initialization is not
+included. With \code{iterations = "near_optimum"}, the plot shows a shaded
+band spanning each pair of consecutive objective values, so that values
+that alternate between iterations remain visible, and a line at their
+average.
 }
 \examples{
 fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,
-               r = 3, lambda_1 = 1, lambda_2 = 1, step_size = 0.0003,
-               control = list(max_iter = 100))
-plot_objective(fit, last = 30)
+               r = 3, lambda_1 = 1, lambda_2 = 1, step_size = 0.003,
+               control = list(max_iter = 1000))
+plot_objective(fit)
+plot_objective(fit, iterations = "near_optimum")
+plot_objective(fit, iterations = 1:100)
 
 }

@@ -1,37 +1,77 @@
-test_that('objective plots retain the update indices and restore graphics state', {
+test_that('objective plots show the requested iterations', {
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
-  graphics::par(mfrow = c(2, 1), mar = c(3, 3, 2, 1))
-  old <- graphics::par(c('mfrow', 'mar'))
-  fit <- list(objective_values = c(9, 5, 6, 5.5), convergence_criterion = 2L)
+  # Decrease to the minimum at iteration 31, then values that stay above it.
+  fit <- list(objective_values = c(seq(100, 10, length.out = 30), rep(c(9, 9.5), 50)),
+              convergence_criterion = 2L)
   original <- fit
-  result <- withVisible(plot_objective(fit, last = 2))
+  result <- withVisible(plot_objective(fit))
   expect_false(result$visible)
-  expect_equal(result$value$iteration, 1:4)
-  expect_equal(result$value$last_indices, 3:4)
-  expect_equal(result$value$recorded_min_index, 2L)
+  expect_equal(result$value$iteration, 1:130)
+  expect_equal(result$value$objective, fit$objective_values)
+  expect_equal(plot_objective(fit, iterations = 2:4)$iteration, 2:4)
+  expect_equal(plot_objective(fit, iterations = c(5, 2, 2))$iteration, c(2, 5))
+  # From the smallest objective value (iteration 31) through the last iteration.
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 31:130)
   expect_identical(fit, original)
-  expect_equal(graphics::par(c('mfrow', 'mar')), old)
-  expect_equal(plot_objective(fit, last = 100)$last_indices, 1:4)
 })
 
-test_that('objective plots support singleton, flat, and failed histories', {
+test_that('near-optimum plots share the horizontal axis of the full history', {
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
-  for (values in list(4, c(4, 4, 4), c(4, Inf, NaN))) {
-    fit <- list(objective_values = values, convergence_criterion = 3L)
-    result <- plot_objective(fit, last = 1)
-    expect_equal(result$recorded_min_index, 1L)
-    expect_equal(result$objective, values)
+  fit <- list(objective_values = c(seq(100, 10, length.out = 30), rep(c(9, 9.5), 50)),
+              convergence_criterion = 2L)
+  plot_objective(fit)
+  usr_all <- graphics::par('usr')[1:2]
+  plot_objective(fit, iterations = 'near_optimum')
+  expect_equal(graphics::par('usr')[1:2], usr_all)
+  # A history still decreasing at the end shows its final stretch with its own axis.
+  fit <- list(objective_values = seq(100, 10, length.out = 100), convergence_criterion = 1L)
+  plot_objective(fit)
+  usr_all <- graphics::par('usr')[1:2]
+  plot_objective(fit, iterations = 'near_optimum')
+  expect_gt(graphics::par('usr')[1], usr_all[1] + 50)
+})
+
+test_that('near-optimum plots show the final stretch when the minimum is at the end', {
+  path <- plot_device()
+  on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
+  # A history that is still decreasing at the last iteration.
+  fit <- list(objective_values = seq(100, 10, length.out = 100), convergence_criterion = 1L)
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 91:100)
+  # Short histories are shown in full.
+  fit <- list(objective_values = c(9, 5, 4), convergence_criterion = 1L)
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 1:3)
+})
+
+test_that('near-optimum plots handle alternating and missing values and keep graphics settings', {
+  path <- plot_device()
+  on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
+  # Alternating values after a decrease; near_optimum draws them as a band.
+  values <- c(seq(50, 11, length.out = 40), 10 + rep(c(0, 0.5), 200))
+  values[100] <- NA
+  fit <- list(objective_values = values, convergence_criterion = 2L)
+  old <- graphics::par('mar')
+  result <- plot_objective(fit)
+  expect_equal(result$iteration, seq_along(values))
+  expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 41:440)
+  expect_equal(graphics::par('mar'), old)
+})
+
+test_that('objective plots handle flat, singleton, and non-finite histories', {
+  path <- plot_device()
+  on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
+  for (values in list(4, c(4, 4, 4), c(4, Inf, NaN), c(Inf, 3, 1, NA))) {
+    fit <- list(objective_values = values, convergence_criterion = 2L)
+    expect_equal(plot_objective(fit)$objective, values)
+    expect_true(length(plot_objective(fit, iterations = 'near_optimum')$iteration) >= 1L)
   }
-  expect_error(plot_objective(list(objective_values = c(Inf, NA))), 'No finite')
-  expect_error(plot_objective(list()), 'objective_values')
-  fit <- list(objective_values = 4, convergence_criterion = 1L)
-  expect_error(plot_objective(fit, last = 0), 'last')
-  expect_error(plot_objective(fit, last = 1.5), 'last')
-  expect_error(plot_objective(fit, main = NA_character_), 'main')
-  fit$convergence_criterion <- 9L
-  expect_error(plot_objective(fit), 'convergence_criterion')
+  fit <- list(objective_values = c(2, 1, 3), convergence_criterion = 2L)
+  for (bad in list(0, 4, 1.5, NA, numeric(), 'near', TRUE)) {
+    expect_error(plot_objective(fit, iterations = bad), 'iterations')
+  }
+  expect_error(plot_objective(list(objective_values = c(Inf, NA))), 'learner')
+  expect_error(plot_objective(list()), 'learner')
 })
 
 test_that('CV plots retain candidate order, mark the global minimum, and scale SSE', {
@@ -146,4 +186,18 @@ test_that('paper-style log labels preserve scores and candidate selection', {
                        log_labels = TRUE), 'strictly positive')
   expect_error(plot_cv(x, log_labels = NA), 'TRUE or FALSE')
   expect_error(plot_cv(x, log_labels = 'yes'), 'TRUE or FALSE')
+})
+
+test_that('objective plots reject ranges with no finite values before drawing', {
+  path <- plot_device()
+  on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
+  fit <- list(objective_values = c(3, 1, NA_real_, Inf, NaN))
+  old <- graphics::par(c('mar', 'usr'))
+  expect_error(
+    withCallingHandlers(plot_objective(fit, iterations = 3:5),
+                        warning = function(w) stop('Unexpected warning: ', conditionMessage(w))),
+    'selected iterations contain no finite objective values')
+  expect_equal(graphics::par(c('mar', 'usr')), old)
+  expect_equal(plot_objective(fit, iterations = 2:5)$objective,
+               fit$objective_values[2:5])
 })

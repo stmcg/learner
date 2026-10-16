@@ -50,7 +50,7 @@ full row-by-row projector. Its population name identifies the input.
 }
 \description{
 Plot column-space and row-space projection submatrices for the target and
-each source, following the layout of Figure 4 in the LEARNER paper.
+each source, to compare their retained latent spaces.
 }
 \details{
 For an SVD basis B, the displayed matrix is a submatrix of B B-transpose.
@@ -66,7 +66,6 @@ singular values at the truncation boundary the retained space is not unique.
 The input order must already encode any desired phenotype or genomic ordering.
 }
 \examples{
-a <- dat_highsim$Y_source[1:20,1:10]
-y <- dat_highsim$Y_target[1:20,1:10]
-plot_source_spaces(y, list(A=a, B=a*1.1), r=2, max_display=20)
+plot_source_spaces(dat_multisource$Y_target, dat_multisource$Y_source,
+                   r = 3, max_display = 20)
 }
