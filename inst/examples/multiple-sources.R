@@ -38,3 +38,23 @@ print(fit$convergence_criterion)
 # D-LEARNER also accepts multiple sources with the same weights.
 direct_fit <- learner::dlearner(sources, target, r = 3, source_weights = weights)
 print(dim(direct_fit$dlearner_estimate))
+
+# Compare source choices using D-LEARNER at the same fixed rank.
+# D-LEARNER avoids optimization and penalty tuning as additional differences.
+# Truth is available only because this is a simulated dataset.
+source_choices <- list(
+  A_only = sources$A,
+  B_only = sources$B,
+  Weighted_A_B = sources
+)
+comparison <- do.call(rbind, lapply(names(source_choices), function(label) {
+  estimate <- learner::dlearner(
+    source_choices[[label]], target, r = 3,
+    source_weights = if (label == 'Weighted_A_B') weights else NULL
+  )$dlearner_estimate
+  data.frame(source = label,
+             frobenius_error = norm(estimate - learner::dat_multisource$Theta_target, 'F'))
+}))
+print(comparison, row.names = FALSE)
+# Lower Frobenius error is better. These are single-dataset results, not CV MSE.
+# The weights 0.7/0.3 are illustrative; combining sources need not beat source A.

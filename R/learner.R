@@ -230,7 +230,9 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' \eqn{\mathcal{P}_\perp(\hat V_1) = I - \hat V_1\hat V_1^\top}. The four terms measure
 #' target fit, departures from the two source spaces, and imbalance between the
 #' target factors, respectively. If \code{Y_target} has missing entries, the
-#' first term is computed over the observed entries.
+#' first term is computed over the observed entries and divided by the observed
+#' fraction (the number of observed entries divided by \eqn{pq}). The penalty
+#' terms are unchanged. The same adjustment applies to the extensions below.
 #'
 #' At each iteration, \eqn{U} and \eqn{V} are updated by a gradient
 #' descent step, starting from the truncated SVD of the source population data.
