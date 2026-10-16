@@ -11,7 +11,9 @@ plot_objective(x, iterations = "all", main = NULL)
 
 \item{iterations}{Iterations to show: \code{"all"} (the default),
 \code{"near_optimum"}, or a vector of iteration numbers such as
-\code{1:1000}. \code{"near_optimum"} shows a window centered on the first
+\code{1:1000}. Positive integer indices beyond the recorded history are
+ignored; at least one requested iteration must exist.
+\code{"near_optimum"} shows a window centered on the first
 smallest finite recorded objective value. The window contains 10\% of the
 recorded iterations (rounded up), with a minimum of 10, or all iterations
 for shorter histories. At either boundary the window shifts to stay within
@@ -34,7 +36,8 @@ given above the plot. The objective value at the initialization is not
 included. With \code{iterations = "near_optimum"}, the plot shows a shaded
 band spanning each pair of consecutive objective values, so that values
 that alternate between iterations remain visible, and a line at their
-average.
+average. Each pair is placed halfway between its two iteration numbers.
+Only actual adjacent pairs are used; missing values interrupt the display.
 }
 \examples{
 fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,

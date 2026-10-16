@@ -3,7 +3,6 @@ if (!requireNamespace("ggplot2", quietly = TRUE) ||
     utils::packageVersion("ggplot2") < "3.4.0") {
   stop('Install ggplot2 >= 3.4.0 to run this example: install.packages("ggplot2")')
 }
-# Run after installing the plotting development version of learner.
 # Synthetic data demonstrate the interface, not statistical performance.
 # Use a small aligned subset to keep this demonstration quick.
 sources <- lapply(learner::dat_multisource$Y_source,

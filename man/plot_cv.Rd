@@ -81,7 +81,10 @@ Common mode shows \code{lambda_1_all} on the horizontal axis and
 penalty horizontally and the V-space penalty vertically, with one panel for
 each balance penalty. All panels share limits computed from the full score
 array, even when only some panels are selected. Up to six panels are drawn
-per page. Gray cells have non-finite scores and are excluded from selection.
+per page. Gray cells represent either non-finite scores (labeled NA) or
+finite scores above \code{relative_limit} (labeled with the cutoff).
+Non-finite scores are excluded from selection; the display cutoff does not
+affect parameter selection. Labels are omitted when \code{show_values = FALSE}.
 Only the first minimum is marked; a panel need not contain a black box.
 Captions report the score range, exact ties, and boundary selections. These are
 descriptive diagnostics, not significance or convergence tests.

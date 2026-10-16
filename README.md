@@ -25,12 +25,11 @@ Install the released version from CRAN:
 install.packages("learner")
 ```
 
-The examples below use the multiple-source and plotting extensions on
-the `plot-diagnostics` development branch:
+Install the latest version from GitHub:
 
 ``` r
-# install.packages("remotes")
-remotes::install_github("stmcg/learner", ref = "plot-diagnostics")
+# install.packages("devtools")
+devtools::install_github("stmcg/learner")
 # Optional: required for plot_cv(), but not for fitting or the other plots.
 install.packages("ggplot2") # version 3.4.0 or later
 ```

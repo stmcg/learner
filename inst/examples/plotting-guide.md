@@ -15,8 +15,11 @@ plot_objective(fit, iterations = 1:500)            # A specific range
 objective value. It shows 10% of the recorded iterations (rounded up), at least
 10, or the full history if fewer than 10 were recorded. At either end the window
 shifts to stay within the history. Both axes zoom to the selected window.
-The shaded band spans consecutive objective values and the line shows their
-pairwise average; the band is not an uncertainty interval.
+The shaded band spans actual adjacent objective values and the line shows their
+pairwise average, positioned halfway between the two iterations. Missing values
+interrupt the band and line; the band is not an uncertainty interval.
+Numeric selections such as `1:1000` keep only recorded iterations. A selection
+with no recorded iterations produces an error.
 
 ## CV heatmaps
 

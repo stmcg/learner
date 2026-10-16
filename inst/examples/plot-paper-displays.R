@@ -1,5 +1,4 @@
 # Population spaces and contributions using simulated multiple-source data.
-# Run after loading the plotting development version of learner.
 space_target <- learner::dat_multisource$Y_target
 space_sources <- learner::dat_multisource$Y_source
 learner::plot_source_spaces(space_target, space_sources, r=3,

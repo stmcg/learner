@@ -6,7 +6,9 @@
 #' @param x A result returned by \code{learner}.
 #' @param iterations Iterations to show: \code{"all"} (the default),
 #' \code{"near_optimum"}, or a vector of iteration numbers such as
-#' \code{1:1000}. \code{"near_optimum"} shows a window centered on the first
+#' \code{1:1000}. Positive integer indices beyond the recorded history are
+#' ignored; at least one requested iteration must exist.
+#' \code{"near_optimum"} shows a window centered on the first
 #' smallest finite recorded objective value. The window contains 10\% of the
 #' recorded iterations (rounded up), with a minimum of 10, or all iterations
 #' for shorter histories. At either boundary the window shifts to stay within
@@ -22,7 +24,8 @@
 #' included. With \code{iterations = "near_optimum"}, the plot shows a shaded
 #' band spanning each pair of consecutive objective values, so that values
 #' that alternate between iterations remain visible, and a line at their
-#' average.
+#' average. Each pair is placed halfway between its two iteration numbers.
+#' Only actual adjacent pairs are used; missing values interrupt the display.
 #'
 #' @examples
 #' fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,
@@ -49,12 +52,15 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
     width <- min(n, max(10L, ceiling(0.1 * n)))
     start <- max(1L, min(minimum - floor((width - 1L) / 2), n - width + 1L))
     shown <- seq.int(start, length.out = width)
-  } else if (is.numeric(iterations) && length(iterations) > 0L &&
-             all(iterations %in% seq_len(n))) {
-    shown <- sort(unique(as.integer(iterations)))
+  } else if (is.numeric(iterations) && !is.complex(iterations) &&
+             length(iterations) > 0L && all(is.finite(iterations)) &&
+             all(iterations >= 1 & iterations == floor(iterations))) {
+    shown <- sort(unique(as.integer(iterations[iterations <= n])))
+    if (length(shown) == 0L) {
+      stop('None of the requested iterations were recorded; the history contains ', n, ' iterations.')
+    }
   } else {
-    stop("iterations must be 'all', 'near_optimum', or iteration numbers between 1 and ",
-         n, '.')
+    stop("iterations must be 'all', 'near_optimum', or positive integer iteration numbers.")
   }
   if (!any(finite[shown])) {
     stop('The selected iterations contain no finite objective values; choose a different range.')
@@ -63,6 +69,8 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
     main <- if (near) 'Objective function (near optimum)' else 'Objective function'
   }
   values <- replace(objective[shown], !finite[shown], NA_real_)
+  pairs <- if (near) objective_pairs(shown, values) else NULL
+  draw_pairs <- near && any(is.finite(pairs$average))
 
   old <- graphics::par(mar = c(5, 4.5, 4, 1.5))
   on.exit(graphics::par(old), add = TRUE)
@@ -73,15 +81,23 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
   graphics::mtext(paste0('Minimum: ', format(objective[minimum], digits = 6),
                          ' at iteration ', minimum),
                   side = 3, line = 0.6, cex = 0.8, col = 'gray30')
-  if (near && length(shown) > 1L) {
-    # The band spans each pair of consecutive values, so alternating values
-    # appear as a band rather than as dense vertical lines.
-    nxt <- c(values[-1], values[length(values)])  # the last value pairs with itself
-    keep <- !is.na(values) & !is.na(nxt)
-    graphics::polygon(c(shown[keep], rev(shown[keep])),
-                      c(pmin(values, nxt)[keep], rev(pmax(values, nxt)[keep])),
-                      col = grDevices::adjustcolor('#2166AC', 0.4), border = NA)
-    graphics::lines(shown[keep], ((values + nxt) / 2)[keep], col = '#2166AC', lwd = 1.5)
+  if (draw_pairs) {
+    # Separate runs prevent the band from bridging missing iterations.
+    keep <- which(is.finite(pairs$average))
+    runs <- split(keep, cumsum(c(TRUE, diff(keep) > 1L)))
+    for (indices in runs) {
+      part <- pairs[indices, , drop = FALSE]
+      if (nrow(part) == 1L) {
+        graphics::segments(part$iteration, part$lower, part$iteration, part$upper,
+                           col = grDevices::adjustcolor('#2166AC', 0.4), lwd = 4)
+      } else {
+        graphics::polygon(c(part$iteration, rev(part$iteration)),
+                          c(part$lower, rev(part$upper)),
+                          col = grDevices::adjustcolor('#2166AC', 0.4), border = NA)
+      }
+      graphics::lines(part$iteration, part$average, col = '#2166AC', lwd = 1.5,
+                     type = if (nrow(part) == 1L) 'p' else 'l')
+    }
   } else {
     graphics::lines(shown, values, col = '#2166AC', type = if (length(shown) == 1L) 'p' else 'l')
   }
@@ -90,11 +106,11 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
   }
   # Symbol keys distinguish the band, mean line, and minimum without colored text.
   band_color <- grDevices::adjustcolor('#2166AC', 0.4)
-  labels <- if (near && length(shown) > 1L)
+  labels <- if (draw_pairs)
     c('Consecutive-iteration range', 'Pairwise average') else 'Objective value'
-  colors <- if (near && length(shown) > 1L) c(band_color, '#2166AC') else '#2166AC'
-  symbols <- if (near && length(shown) > 1L) c(22, NA) else NA
-  line_types <- if (near && length(shown) > 1L) c(0, 1) else 1
+  colors <- if (draw_pairs) c(band_color, '#2166AC') else '#2166AC'
+  symbols <- if (draw_pairs) c(22, NA) else NA
+  line_types <- if (draw_pairs) c(0, 1) else 1
   if (minimum %in% shown) {
     labels <- c(labels, 'Minimum recorded objective')
     colors <- c(colors, '#B2182B')
@@ -106,6 +122,18 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
                    pt.bg = band_color, pt.cex = 1.1, lty = line_types,
                    lwd = 1.5, cex = 0.8, y.intersp = 1.3, bty = 'n')
   invisible(data.frame(iteration = shown, objective = objective[shown]))
+}
+
+# Summarize actual adjacent records, retaining gaps for non-finite pairs.
+objective_pairs <- function(iteration, values) {
+  left <- seq_len(max(0L, length(values) - 1L))
+  right <- left + 1L
+  valid <- is.finite(values[left]) & is.finite(values[right]) &
+    iteration[right] == iteration[left] + 1
+  data.frame(iteration = iteration[left] / 2 + iteration[right] / 2,
+             lower = ifelse(valid, pmin(values[left], values[right]), NA_real_),
+             upper = ifelse(valid, pmax(values[left], values[right]), NA_real_),
+             average = ifelse(valid, values[left] / 2 + values[right] / 2, NA_real_))
 }
 
 #' Plot the LEARNER cross-validation scores
@@ -163,7 +191,10 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
 #' penalty horizontally and the V-space penalty vertically, with one panel for
 #' each balance penalty. All panels share limits computed from the full score
 #' array, even when only some panels are selected. Up to six panels are drawn
-#' per page. Gray cells have non-finite scores and are excluded from selection.
+#' per page. Gray cells represent either non-finite scores (labeled NA) or
+#' finite scores above \code{relative_limit} (labeled with the cutoff).
+#' Non-finite scores are excluded from selection; the display cutoff does not
+#' affect parameter selection. Labels are omitted when \code{show_values = FALSE}.
 #' Only the first minimum is marked; a panel need not contain a black box.
 #' Captions report the score range, exact ties, and boundary selections. These are
 #' descriptive diagnostics, not significance or convergence tests.

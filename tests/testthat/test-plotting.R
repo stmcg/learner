@@ -11,6 +11,8 @@ test_that('objective plots show the requested iterations', {
   expect_equal(result$value$objective, fit$objective_values)
   expect_equal(plot_objective(fit, iterations = 2:4)$iteration, 2:4)
   expect_equal(plot_objective(fit, iterations = c(5, 2, 2))$iteration, c(2, 5))
+  expect_equal(plot_objective(fit, iterations = 1:1000)$iteration, 1:130)
+  expect_equal(plot_objective(fit, iterations = c(1000, 2, 1))$iteration, 1:2)
   # A 13-iteration window centered on the first minimum at iteration 31.
   expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 25:37)
   expect_identical(fit, original)
@@ -73,6 +75,28 @@ test_that('objective plots handle flat, singleton, and non-finite histories', {
   }
   expect_error(plot_objective(list(objective_values = c(Inf, NA))), 'learner')
   expect_error(plot_objective(list()), 'learner')
+})
+
+test_that('adjacent-pair summaries do not invent a final update or bridge gaps', {
+  values <- rep(c(10, 12), 5)
+  pairs <- objective_pairs(seq_along(values), values)
+  expect_equal(nrow(pairs), 9L)
+  expect_equal(pairs$iteration, seq(1.5, 9.5))
+  expect_equal(pairs$average, rep(11, 9))
+  expect_equal(pairs$lower, rep(10, 9))
+  expect_equal(pairs$upper, rep(12, 9))
+  gaps <- objective_pairs(1:5, c(3, NA, 1, 2, 4))
+  expect_equal(gaps$average, c(NA, NA, 1.5, 3))
+  skipped <- objective_pairs(c(1, 2, 4, 5), c(10, 12, 10, 12))
+  expect_equal(skipped$average, c(11, NA, 11))
+  expect_equal(nrow(objective_pairs(1, 4)), 0L)
+
+  path <- plot_device()
+  on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
+  for (history in list(values, c(1, 3), c(1, 3, NA, 2, 4), c(1, NA, 3))) {
+    expect_equal(plot_objective(list(objective_values = history),
+                                iterations = 'near_optimum')$objective, history)
+  }
 })
 
 test_that('CV plots retain candidate order, mark the global minimum, and scale SSE', {
