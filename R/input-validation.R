@@ -6,8 +6,11 @@ prepare_sources <- function(Y_source, Y_target, source_weights = NULL,
       any(dim(Y_target) == 0L) || any(is.infinite(Y_target))) {
     stop('Y_target must be a nonempty numeric matrix without infinite values.')
   }
-  if ((!allow_missing_target && anyNA(Y_target)) || all(is.na(Y_target))) {
-    stop('Y_target must contain observed values; dlearner does not allow NA values.')
+  if (all(is.na(Y_target))) {
+    stop('Y_target must contain observed values.')
+  }
+  if (!allow_missing_target && anyNA(Y_target)) {
+    stop('dlearner requires a complete Y_target without missing values.')
   }
   sources <- if (is.matrix(Y_source)) list(Y_source) else Y_source
   if (!is.list(sources) || length(sources) == 0L) {
