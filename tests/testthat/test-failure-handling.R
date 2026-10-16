@@ -22,6 +22,21 @@ test_that('all fitting interfaces reject malformed target matrices', {
   }
 })
 
+test_that('missing-target messages distinguish an empty target from D-LEARNER requirements', {
+  d <- failure_example()
+  missing <- d$target
+  missing[] <- NA_real_
+  expect_error(learner(d$source, missing, r = 2, lambda_1 = 1,
+                        lambda_2 = 1, step_size = 0.001),
+               '^Y_target must contain observed values\\.$')
+  expect_error(cv.learner(d$source, missing, r = 2, lambda_1_all = 1,
+                           lambda_2_all = 1, step_size = 0.001),
+               '^Y_target must contain observed values\\.$')
+  d$target[1, 1] <- NA_real_
+  expect_error(dlearner(d$source, d$target, r = 2),
+               'dlearner requires a complete Y_target without missing values', fixed = TRUE)
+})
+
 test_that('learner and CV reject invalid optimization settings', {
   d <- failure_example()
   calls <- list(
