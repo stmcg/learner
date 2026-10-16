@@ -52,6 +52,24 @@ dim(fit_single$learner_estimate)
 #> [1] 100  50
 ```
 
+`plot_objective()` shows the recorded objective values. With
+`iterations = "near_optimum"` it zooms in on the iterations around the
+smallest value; the default `iterations = "all"` shows the full history,
+and a vector such as `1:500` shows a specific range.
+
+``` r
+plot_objective(fit_single, iterations = "near_optimum")
+```
+
+<div class="figure">
+
+<img src="README_files/figure-gfm/objective-history-1.png" alt="Objective function values near the optimum for the single-source fit." width="100%" />
+<p class="caption">
+Objective function values near the optimum for the single-source fit.
+</p>
+
+</div>
+
 D-LEARNER projects the target data directly onto the source spaces,
 without iterative optimization or penalty selection:
 
@@ -131,7 +149,7 @@ A selected value on a grid boundary can be a reason to expand that grid.
 CV scores can also come from fits that reached the iteration limit, so
 inspect the optimization settings before interpreting the selection.
 
-### Refit and inspect optimization
+### Refit with the selected penalties
 
 Refit using the selected penalties and all observed target entries:
 
@@ -145,23 +163,6 @@ fit <- learner(
 fit$convergence_criterion
 #> [1] 1
 ```
-
-``` r
-plot_objective(fit, iterations = "near_optimum")
-```
-
-<div class="figure">
-
-<img src="README_files/figure-gfm/objective-history-1.png" alt="Objective function values near the optimum for the refitted target model." width="100%" />
-<p class="caption">
-Objective function values near the optimum for the refitted target
-model.
-</p>
-
-</div>
-
-Use `iterations = "all"` (the default) for the full history, or a vector
-such as `1:500` for a specific range.
 
 D-LEARNER accepts the same source list and weights:
 
