@@ -20,76 +20,75 @@ cv.learner(
 )
 }
 \arguments{
-\item{Y_source}{numeric source matrix or nonempty list of numeric source matrices. Every source must have the same dimensions and corresponding row/column order as \code{Y_target}, and contain no missing or infinite values.}
+\item{Y_source}{Source population data, as in \code{\link{learner}}.
+Supply a matrix for one source or a list of matrices for multiple sources.}
 
-\item{Y_target}{nonempty numeric matrix containing target population data.
-Missing entries (\code{NA} or \code{NaN}) are allowed, but at least one entry
-must be observed. Infinite values are not allowed.}
+\item{Y_target}{Target population data matrix, as in \code{\link{learner}}.
+Only observed entries are used to evaluate predictions.}
 
-\item{r}{optional common rank for the source spaces and target factors, between 1 and the smaller matrix dimension. If omitted, ScreeNOT selects it from the first source.}
+\item{r}{Rank used in every fold, as in \code{\link{learner}}. It is not
+selected by cross-validation.}
 
-\item{lambda_1_all}{nonempty vector of finite nonnegative candidate common penalties. Use this or both separate grids, not both modes.}
+\item{lambda_1_all}{Candidate values for the common source-space penalty
+\eqn{\lambda_1}. All combinations with \code{lambda_2_all} are evaluated.}
 
-\item{lambda_2_all}{nonempty vector of finite nonnegative candidate balance penalties.}
+\item{lambda_2_all}{Candidate values for the balance penalty \eqn{\lambda_2}.}
 
-\item{step_size}{numeric scalar specifying the step size for the scaled gradient steps in the numerical optimization algorithm, as in \code{\link{learner}}}
+\item{step_size}{Step size for each fit, as in \code{\link{learner}}.}
 
-\item{n_folds}{integer from 2 to the number of observed target entries. The default is \code{4}.}
+\item{n_folds}{Number of cross-validation folds. Default is \code{4}.}
 
-\item{n_cores}{positive integer specifying the requested number of OpenMP
-threads. Candidate penalty combinations are evaluated in parallel when the
-package is built with OpenMP support; otherwise they run sequentially.
-The default is \code{1}.}
+\item{n_cores}{Number of CPU cores used to evaluate the candidate penalty
+combinations in parallel. Default is \code{1}, i.e., no parallelization.}
 
-\item{control}{a list of parameters for controlling the stopping criteria for the numerical optimization algorithm, as in \code{\link{learner}}.}
+\item{control}{Optimization settings for each fit; see \code{\link{learner}}.}
 
-\item{lambda_1_row_all}{nonempty vector of finite nonnegative candidate penalties on U; requires \code{lambda_1_col_all}.}
+\item{lambda_1_row_all, lambda_1_col_all}{Candidate values for separate
+penalties on the row and column factors. Supply both instead of
+\code{lambda_1_all}; all combinations with \code{lambda_2_all} are evaluated.}
 
-\item{lambda_1_col_all}{nonempty vector of finite nonnegative candidate penalties on V; requires \code{lambda_1_row_all}.}
-
-\item{source_weights}{optional finite nonnegative numeric vector with one
-weight per source and at least one positive value. Weights correspond to the
-order of matrices in \code{Y_source}; names are not used for matching. They
-are normalized to sum to one. \code{NULL} gives equal weights. For a single
-source, a supplied weight must be a positive scalar and is normalized to one.}
+\item{source_weights}{Relative source weights, as in \code{\link{learner}}. The weights
+are not selected by cross-validation. Default is equal weights.}
 }
 \value{
-A list with the following elements:
-\item{lambda_1_min}{selected common penalty; \code{NA} in separate mode.}
-\item{lambda_1_row_min, lambda_1_col_min}{selected separate penalties, returned only in separate mode.}
-\item{lambda_2_min}{balance penalty in the combination with the smallest held-out squared-error sum.}
-\item{mse_all}{held-out squared-error sums, retaining the historical scale despite the name. Common mode returns a matrix indexed by \code{lambda_1_all} and \code{lambda_2_all}. Separate mode returns a three-dimensional array indexed by \code{lambda_1_row_all}, \code{lambda_1_col_all}, and \code{lambda_2_all}, in that order.}
-\item{r}{rank value used.}
+A list containing:
+\item{lambda_1_min}{Common source-space penalty in the selected combination.
+\code{NA} when separate penalties are used.}
+\item{lambda_2_min}{Balance penalty in the selected combination.}
+\item{lambda_1_row_min, lambda_1_col_min}{Row and column penalties in the
+selected combination. Returned only when separate penalties are used.}
+\item{mse_all}{Sum of held-out squared errors for each candidate combination.
+For common penalties, rows correspond to \code{lambda_1_all} and columns to
+\code{lambda_2_all}. For separate penalties, the three dimensions correspond
+to the row, column, and balance grids, in that order. Divide by the number
+of observed target entries to obtain mean squared errors.}
+\item{r}{Rank used in the fits.}
 }
 \description{
-Select common or separate source-space penalties and a balance penalty for
-\code{\link{learner}} by k-fold cross-validation on observed target entries.
-One source matrix or a list of source matrices can be supplied.
+Performs k-fold cross-validation to select the source-space and balance
+penalties for \code{\link{learner}}. Returns prediction errors and the
+penalty combination with the smallest error.
 }
 \details{
-Each observed target entry is held out once. The same folds are used for all
-candidates. Dividing \code{mse_all} by the number of observed target entries
-gives the mean squared error without changing the selected candidate. Ties
-select the first minimum in R array order. Existing missing entries are
-excluded from validation. Rank, source spaces, source weights, and the
-first-source initialization are fixed across folds. The function tunes
-penalties, not rank or source weights. Call \code{set.seed()} before
-\code{cv.learner()} to reproduce the fold allocation.
-For independent penalties, supply both separate grids and \code{lambda_2_all}.
-Candidates with non-finite errors are excluded with a warning; if all fail,
-the function stops. Finite fits that reach the iteration limit are retained,
-so selecting a candidate does not certify convergence of its fold fits.
-Assess the optimization settings as well as the final refit.
+Given sets of candidate values of \eqn{\lambda_1} and \eqn{\lambda_2}, this
+function performs k-fold cross-validation to select the pair
+\eqn{(\lambda_1, \lambda_2)} with the smallest held out error. This function
+randomly partitions the entries of \code{Y_target} into \eqn{k}
+(approximately) equally sized subsamples. The training data sets are obtained
+by removing one of the \eqn{k} subsamples and the corresponding test data
+sets are based on the held out subsamples. The \code{\link{learner}} function is
+applied to each training data set. The held out error is computed by comparing
+the entries in the test data sets with those imputed from the LEARNER
+estimates. See McGrath et al. (2024) for further details.
 
-The return value contains scores and selected parameters, not a final fitted
-target matrix. Refit with \code{learner()} using all observed target entries
-and the selected penalties, while retaining the same sources, weights, and rank.
+With separate penalties, the procedure selects the row, column, and balance
+penalties together. Both modes can be used with multiple sources. Call
+\code{set.seed()} first to reproduce the random partition.
 
-Observed target entries are randomly partitioned into approximately equal
-folds. Each fold is set to missing in the training matrix, and the fitted
-matrix is used to predict the held-out entries. Errors are summed across
-folds for each candidate pair (common penalties) or triple (separate
-penalties). Source entries are not held out. See McGrath et al. (2024).
+To obtain the final estimate, apply \code{\link{learner}} with the selected
+penalties to the full data (see Examples). Fits that reach the iteration
+limit still contribute to the held out error, so check the settings in
+\code{control} before interpreting the selection.
 }
 \examples{
 res <- cv.learner(Y_source = dat_highsim$Y_source,
@@ -98,19 +97,20 @@ res <- cv.learner(Y_source = dat_highsim$Y_source,
                   lambda_2_all = c(1, 10, 100),
                   step_size = 0.003)
 
-# A small simulated example: source B is a perturbation of source A,
-# not an independent population. Weights are fixed demonstration values.
-set.seed(803)
-source_A <- dat_highsim$Y_source[1:20, 1:10]
-source_B <- source_A + matrix(rnorm(length(source_A), sd = 0.3),
-                              nrow(source_A), ncol(source_A))
-sources <- list(A = source_A, B = source_B)
-target <- dat_highsim$Y_target[1:20, 1:10]
+# Refit using the selected penalties and all observed target entries.
+fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target, r = res$r,
+               lambda_1 = res$lambda_1_min, lambda_2 = res$lambda_2_min,
+               step_size = 0.003)
+fit$convergence_criterion
+
+# Multiple sources with fixed demonstration weights.
+sources <- dat_multisource$Y_source
+target <- dat_multisource$Y_target
 weights <- c(0.7, 0.3)
 
 set.seed(815)
 res_separate <- cv.learner(
-  Y_source = sources, Y_target = target, r = 2,
+  Y_source = sources, Y_target = target, r = 3,
   source_weights = weights,
   lambda_1_row_all = c(1, 10), lambda_1_col_all = c(1, 3),
   lambda_2_all = c(0.1, 1), step_size = 0.0003,
@@ -131,4 +131,7 @@ fit$convergence_criterion
 }
 \references{
 McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
+}
+\seealso{
+\code{\link{learner}} for fitting with the selected penalties.
 }
