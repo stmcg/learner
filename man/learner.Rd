@@ -4,63 +4,160 @@
 \alias{learner}
 \title{Latent space-based transfer learning}
 \usage{
-learner(Y_source, Y_target, r, lambda_1, lambda_2, step_size, control = list())
+learner(
+  Y_source,
+  Y_target,
+  r,
+  lambda_1 = NULL,
+  lambda_2,
+  step_size,
+  control = list(),
+  lambda_1_row = NULL,
+  lambda_1_col = NULL,
+  source_weights = NULL
+)
 }
 \arguments{
-\item{Y_source}{matrix containing the source population data}
+\item{Y_source}{Matrix containing the source population data, with the same rows
+and columns as \code{Y_target}. For multiple sources, supply a list of
+matrices.}
 
-\item{Y_target}{matrix containing the target population data}
+\item{Y_target}{Matrix containing the target population data. Missing entries
+are allowed.}
 
-\item{r}{(optional) integer specifying the rank of the knowledge graphs. By default, ScreeNOT (Donoho et al. 2023) is applied to the source population knowledge graph to select the rank.}
+\item{r}{Rank of the knowledge graphs. If omitted, ScreeNOT (Donoho et al. 2023)
+is applied to the source population data to select the rank.}
 
-\item{lambda_1}{numeric scalar specifying the value of \eqn{\lambda_1} (see Details)}
+\item{lambda_1}{Common source-space penalty. Larger values borrow more
+information from the source population; zero does not use the source spaces.
+Use \code{\link{cv.learner}} to select penalty values.}
 
-\item{lambda_2}{numeric scalar specifying the value of \eqn{\lambda_2} (see Details)}
+\item{lambda_2}{Balance penalty. Larger values more strongly encourage
+\eqn{U} and \eqn{V} to have comparable scale.}
 
-\item{step_size}{numeric scalar specifying the step size for the Newton steps in the numerical optimization algorithm}
+\item{step_size}{Step size in the optimization algorithm. Smaller values may
+reduce oscillation but require more iterations.}
 
-\item{control}{a list of parameters for controlling the stopping criteria for the numerical optimization algorithm. The list may include the following components:
-\tabular{ll}{
-\code{max_iter} \tab integer specifying the maximum number of iterations \cr
-\code{threshold} \tab numeric scalar specifying a convergence threshold. The algorithm converges when \eqn{|\epsilon_t - \epsilon_{t-1}| < }\code{threshold}, where \eqn{\epsilon_t} denotes the value of the objective function at iteration \eqn{t}. \cr
-\code{max_value} \tab numeric scalar used to specify the maximum value of the objective function allowed before terminating the algorithm. Specifically, the algorithm will terminate if the value of the objective function exceeds \code{max_value}\eqn{\times \epsilon_0}, where \eqn{\epsilon_0} denotes the value of the objective function at the initial point. This is used to prevent unnecessary computation time after the optimization algorithm diverges. \cr}}
+\item{control}{List of settings controlling when optimization stops:
+\describe{
+\item{\code{max_iter}}{Maximum number of updates; default \code{100}.}
+\item{\code{threshold}}{Stop when the absolute change between consecutive
+objective values is smaller than this value; default \code{0.001}.}
+\item{\code{max_value}}{Stop if the objective grows beyond this multiple of
+its preceding value; default \code{10}.}}}
+
+\item{lambda_1_row, lambda_1_col}{Separate source-space penalties for the row
+factor \eqn{U} and column factor \eqn{V}, respectively. Use these when the two
+sides should borrow different amounts of source information. Supply both
+instead of \code{lambda_1}; equal values reproduce the common penalty.}
+
+\item{source_weights}{Relative weights of the sources, in the order of
+\code{Y_source}. Default is equal weights.}
 }
 \value{
 A list with the following elements:
-\item{learner_estimate}{matrix containing the LEARNER estimate of the target population knowledge graph}
-\item{objective_values}{numeric vector containing the values of the objective function at each iteration}
-\item{convergence_criterion}{integer specifying the criterion that was satisfied for terminating the numerical optimization algorithm. A value of 1 indicates the convergence threshold was satisfied; A value of 2 indicates that the maximum number of iterations was satisfied; A value of 3 indicates that the maximum value of the objective function was satisfied.}
+\item{learner_estimate}{matrix containing the LEARNER estimate of the target population knowledge graph.}
+\item{objective_values}{numeric vector containing the values of the objective function at each iteration.}
+\item{convergence_criterion}{stopping code: \code{1}, the absolute objective-change threshold was met; \code{2}, the iteration limit was reached; \code{3}, excessive objective growth or non-finite objective/factors were detected.}
 \item{r}{rank value used.}
 }
 \description{
-This function applies the LatEnt spAce-based tRaNsfer lEaRning (LEARNER) method (McGrath et al. 2024) to leverage data from a source population to improve
-estimation of a low rank matrix in an underrepresented target population.
+This function applies the LatEnt spAce-based tRaNsfer lEaRning (LEARNER)
+method (McGrath et al. 2024) to leverage data from a source population to improve
+estimation of a low-rank matrix in an underrepresented target population.
 }
 \details{
 \strong{Data and notation:}
 
-The data consists of a matrix in the target population \eqn{Y_0 \in \mathbb{R}^{p \times q}} and the source population \eqn{Y_1 \in \mathbb{R}^{p \times q}}.
-Let \eqn{\hat{U}_{k} \hat{\Lambda}_{k} \hat{V}_{k}^{\top}} denote the truncated singular value decomposition (SVD) of \eqn{Y_k}, \eqn{k = 0, 1}.
+The data consists of a matrix in the target population
+\eqn{Y_0\in\mathbb{R}^{p\times q}} and the source population
+\eqn{Y_1\in\mathbb{R}^{p\times q}}. Let
+\eqn{\hat U_k\hat\Lambda_k\hat V_k^\top} denote the rank-\eqn{r} truncated
+singular value decomposition (SVD) of \eqn{Y_k}, \eqn{k = 0, 1}.
 
-For \eqn{k = 0, 1}, one can view \eqn{Y_k} as a noisy version of \eqn{\Theta_k}, referred to as the knowledge graph. The target of inference is the target population knowledge graph, \eqn{\Theta_0}.
+For \eqn{k = 0, 1}, one can view \eqn{Y_k} as a noisy version of
+\eqn{\Theta_k}, referred to as the knowledge graph. The target of inference
+is the target population knowledge graph, \eqn{\Theta_0}.
 
 \strong{Estimation:}
 
-This method estimates \eqn{\Theta_0} by \eqn{\tilde{U}\tilde{V}^{\top}}, where \eqn{(\tilde{U}, \tilde{V})} is the solution to the following optimization problem
-\deqn{\mathrm{arg\,min}_{U \in \mathbb{R}^{p \times r}, V \in \mathbb{R}^{q \times r}} \big\{ \| U V^{\top} - Y_0 \|_F^2 + \lambda_1\| \mathcal{P}_{\perp}(\hat{U}_{1})U \|_F^2 + \lambda_1\|  \mathcal{P}_{\perp}(\hat{V}_{1})V \|_F^2  + \lambda_2 \| U^{\top} U - V^{\top} V \|_F^2 \big\}}
-where \eqn{\mathcal{P}_{\perp}(\hat{U}_{1}) = I - \hat{U}_{1}^{\top}\hat{U}_{1}} and \eqn{\mathcal{P}_{\perp}(\hat{V}_{1}) = I - \hat{V}_{1}^{\top}\hat{V}_{1}}.
+This method estimates \eqn{\Theta_0} by \eqn{\tilde U\tilde V^\top}, where
+\eqn{(\tilde U, \tilde V)} is the solution to the following optimization problem
 
-This function uses an alternating minimization strategy to solve the optimization problem. That is, this approach updates \eqn{U} by minimizing the objective function (via a gradient descent step) treating \eqn{V} as fixed. Then, \eqn{V} is updated treating \eqn{U} as fixed. These updates of \eqn{U} and \eqn{V} are repeated until convergence.
+\deqn{\mathrm{arg\,min}_{U\in\mathbb{R}^{p\times r},\,V\in\mathbb{R}^{q\times r}}
+  \big\{\|UV^\top-Y_0\|_F^2
+  +\lambda_1\|\mathcal{P}_\perp(\hat U_1)U\|_F^2
+  +\lambda_1\|\mathcal{P}_\perp(\hat V_1)V\|_F^2
+  +\lambda_2\|U^\top U-V^\top V\|_F^2\big\}}
+
+where \eqn{\mathcal{P}_\perp(\hat U_1) = I - \hat U_1\hat U_1^\top} and
+\eqn{\mathcal{P}_\perp(\hat V_1) = I - \hat V_1\hat V_1^\top}. The four terms measure
+target fit, departures from the two source spaces, and imbalance between the
+target factors, respectively. If \code{Y_target} has missing entries, the
+first term is computed over the observed entries and divided by the observed
+fraction (the number of observed entries divided by \eqn{pq}). The penalty
+terms are unchanged. The same adjustment applies to the extensions below.
+
+At each iteration, \eqn{U} and \eqn{V} are updated by a gradient
+descent step, starting from the truncated SVD of the source population data.
+These updates are repeated until convergence.
+
+\strong{Extensions:}
+
+Separate penalties \code{lambda_1_row} and \code{lambda_1_col} replace
+\eqn{\lambda_1} in the second and third terms. For multiple sources, the
+source projectors are replaced by weighted combinations:
+
+\deqn{\bar P_U=\sum_{k=1}^K w_k\hat U_k\hat U_k^\top,\qquad
+      \bar P_V=\sum_{k=1}^K w_k\hat V_k\hat V_k^\top.}
+
+where \eqn{\hat U_k} and \eqn{\hat V_k} come from the truncated SVD of
+the \eqn{k}th source and the weights \eqn{w_k} are given by
+\code{source_weights}. The full objective is
+
+\deqn{\begin{aligned}
+L(U,V) ={}& \|UV^\top-Y_0\|_F^2 \\
+&+\lambda_{1,\mathrm{row}}\|(I_p-\bar P_U)U\|_F^2 \\
+&+\lambda_{1,\mathrm{col}}\|(I_q-\bar P_V)V\|_F^2 \\
+&+\lambda_2\|U^\top U-V^\top V\|_F^2.
+\end{aligned}}
+
+where \eqn{I_p} and \eqn{I_q} are identity matrices. Equal space penalties
+give the common-penalty version. With multiple sources, the first source is
+used to initialize the algorithm and, if \code{r} is not specified, to
+select the rank.
 }
 \examples{
+# Single source with a common source-space penalty.
 res <- learner(Y_source = dat_highsim$Y_source,
                Y_target = dat_highsim$Y_target,
                lambda_1 = 1, lambda_2 = 1,
                step_size = 0.003)
+
+# Same source, with separate penalties for the two factors.
+res_separate <- learner(Y_source = dat_highsim$Y_source,
+                        Y_target = dat_highsim$Y_target,
+                        lambda_1_row = 10, lambda_1_col = 1,
+                        lambda_2 = 1, step_size = 0.003)
+
+# Multiple sources with fixed demonstration weights.
+res_multi <- learner(
+  Y_source = dat_multisource$Y_source,
+  Y_target = dat_multisource$Y_target, r = 3,
+  source_weights = c(0.7, 0.3),
+  lambda_1_row = 10, lambda_1_col = 1, lambda_2 = 1,
+  step_size = 0.0003, control = list(max_iter = 100))
+dim(res_multi$learner_estimate)
+res_multi$convergence_criterion
+# Short runs demonstrate usage; they need not meet the stopping threshold.
 
 }
 \references{
 McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
 
 Donoho, D., Gavish, M. and Romanov, E. (2023). \emph{ScreeNOT: Exact MSE-optimal singular value thresholding in correlated noise}. The Annals of Statistics, 51(1), pp.122-148.
+}
+\seealso{
+\code{\link{cv.learner}} for penalty selection;
+\code{\link{dlearner}} for direct projection onto source spaces.
 }

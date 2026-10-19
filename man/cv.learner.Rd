@@ -8,45 +8,87 @@ cv.learner(
   Y_source,
   Y_target,
   r,
-  lambda_1_all,
+  lambda_1_all = NULL,
   lambda_2_all,
   step_size,
   n_folds = 4,
   n_cores = 1,
-  control = list()
+  control = list(),
+  lambda_1_row_all = NULL,
+  lambda_1_col_all = NULL,
+  source_weights = NULL
 )
 }
 \arguments{
-\item{Y_source}{matrix containing the source population data, as in \code{\link{learner}}}
+\item{Y_source}{Source population data, as in \code{\link{learner}}.
+Supply a matrix for one source or a list of matrices for multiple sources.}
 
-\item{Y_target}{matrix containing the target population data, as in \code{\link{learner}}}
+\item{Y_target}{Target population data matrix, as in \code{\link{learner}}.
+Only observed entries are used to evaluate predictions.}
 
-\item{r}{(optional) integer specifying the rank of the knowledge graphs, as in \code{\link{learner}}}
+\item{r}{Rank used in every fold, as in \code{\link{learner}}. It is not
+selected by cross-validation.}
 
-\item{lambda_1_all}{vector of numerics specifying the candidate values of \eqn{\lambda_1} (see Details)}
+\item{lambda_1_all}{Candidate values for the common source-space penalty
+\eqn{\lambda_1}. All combinations with \code{lambda_2_all} are evaluated.}
 
-\item{lambda_2_all}{vector of numerics specifying the candidate values of \eqn{\lambda_2} (see Details)}
+\item{lambda_2_all}{Candidate values for the balance penalty \eqn{\lambda_2}.}
 
-\item{step_size}{numeric scalar specifying the step size for the Newton steps in the numerical optimization algorithm, as in \code{\link{learner}}}
+\item{step_size}{Step size for each fit, as in \code{\link{learner}}.}
 
-\item{n_folds}{an integer specify the number of cross-validation folds. The default is \code{4}.}
+\item{n_folds}{Number of cross-validation folds. Default is \code{4}.}
 
-\item{n_cores}{an integer specifying the number of CPU cores in OpenMP parallelization. Parallelization is performed across the different candidate \eqn{(\lambda_1, \lambda_2)} pairs. The default is \code{1}, i.e., no parallelization.}
+\item{n_cores}{Number of CPU cores used to evaluate the candidate penalty
+combinations in parallel. Default is \code{1}, i.e., no parallelization.}
 
-\item{control}{a list of parameters for controlling the stopping criteria for the numerical optimization algorithm, as in \code{\link{learner}}.}
+\item{control}{Optimization settings for each fit; see \code{\link{learner}}.}
+
+\item{lambda_1_row_all, lambda_1_col_all}{Candidate values for separate
+penalties on the row and column factors. Supply both instead of
+\code{lambda_1_all}; all combinations with \code{lambda_2_all} are evaluated.}
+
+\item{source_weights}{Relative source weights, as in \code{\link{learner}}. The weights
+are not selected by cross-validation. Default is equal weights.}
 }
 \value{
-A list with the following elements:
-\item{lambda_1_min}{value of \eqn{\lambda_1} with the smallest MSE}
-\item{lambda_2_min}{value of \eqn{\lambda_2} with the smallest MSE}
-\item{mse_all}{matrix containing MSE value for each \eqn{(\lambda_1, \lambda_2)} pair. The rows correspond to the \eqn{\lambda_1} values, and the columns correspond to the \eqn{\lambda_2} values.}
-\item{r}{rank value used.}
+A list containing:
+\item{lambda_1_min}{Common source-space penalty in the selected combination.
+\code{NA} when separate penalties are used.}
+\item{lambda_2_min}{Balance penalty in the selected combination.}
+\item{lambda_1_row_min, lambda_1_col_min}{Row and column penalties in the
+selected combination. Returned only when separate penalties are used.}
+\item{mse_all}{Sum of held-out squared errors for each candidate combination.
+For common penalties, rows correspond to \code{lambda_1_all} and columns to
+\code{lambda_2_all}. For separate penalties, the three dimensions correspond
+to the row, column, and balance grids, in that order. Divide by the number
+of observed target entries to obtain mean squared errors.}
+\item{r}{Rank used in the fits.}
 }
 \description{
-This function performs k-fold cross-validation to select the nuisance parameters \eqn{(\lambda_1, \lambda_2)} for \code{\link{learner}}.
+Performs k-fold cross-validation to select the source-space and balance
+penalties for \code{\link{learner}}. Returns prediction errors and the
+penalty combination with the smallest error.
 }
 \details{
-Given sets of candidate values of \eqn{\lambda_1} and \eqn{\lambda_2}, this function performs k-fold cross-validation to select the pair \eqn{(\lambda_1, \lambda_2)} with the smallest held out error. This function randomly partitions the entries of \code{Y_target} into \eqn{k} (approximately) equally sized subsamples. The training data sets are obtained by removing one of the \eqn{k} subsamples and the corresponding test data sets are based on the held out subsamples. The \code{\link{learner}} function is applied to each training data set. The held out error is computed by the mean squared error comparing the entries in the test data sets with those imputed from the LEARNER estimates. See McGrath et al. (2024) for further details.
+Given sets of candidate values of \eqn{\lambda_1} and \eqn{\lambda_2}, this
+function performs k-fold cross-validation to select the pair
+\eqn{(\lambda_1, \lambda_2)} with the smallest held out error. This function
+randomly partitions the entries of \code{Y_target} into \eqn{k}
+(approximately) equally sized subsamples. The training data sets are obtained
+by removing one of the \eqn{k} subsamples and the corresponding test data
+sets are based on the held out subsamples. The \code{\link{learner}} function is
+applied to each training data set. The held out error is computed by comparing
+the entries in the test data sets with those imputed from the LEARNER
+estimates. See McGrath et al. (2024) for further details.
+
+With separate penalties, the procedure selects the row, column, and balance
+penalties together. Both modes can be used with multiple sources. Call
+\code{set.seed()} first to reproduce the random partition.
+
+To obtain the final estimate, apply \code{\link{learner}} with the selected
+penalties to the full data (see Examples). Fits that reach the iteration
+limit still contribute to the held out error, so check the settings in
+\code{control} before interpreting the selection.
 }
 \examples{
 res <- cv.learner(Y_source = dat_highsim$Y_source,
@@ -55,9 +97,41 @@ res <- cv.learner(Y_source = dat_highsim$Y_source,
                   lambda_2_all = c(1, 10, 100),
                   step_size = 0.003)
 
+# Refit using the selected penalties and all observed target entries.
+fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target, r = res$r,
+               lambda_1 = res$lambda_1_min, lambda_2 = res$lambda_2_min,
+               step_size = 0.003)
+fit$convergence_criterion
 
+# Multiple sources with fixed demonstration weights.
+sources <- dat_multisource$Y_source
+target <- dat_multisource$Y_target
+weights <- c(0.7, 0.3)
+
+set.seed(815)
+res_separate <- cv.learner(
+  Y_source = sources, Y_target = target, r = 3,
+  source_weights = weights,
+  lambda_1_row_all = c(1, 10), lambda_1_col_all = c(1, 3),
+  lambda_2_all = c(0.1, 1), step_size = 0.0003,
+  n_folds = 2, control = list(max_iter = 100))
+dim(res_separate$mse_all) # row grid x column grid x balance grid
+
+fit <- learner(
+  Y_source = sources, Y_target = target, r = res_separate$r,
+  source_weights = weights,
+  lambda_1_row = res_separate$lambda_1_row_min,
+  lambda_1_col = res_separate$lambda_1_col_min,
+  lambda_2 = res_separate$lambda_2_min, step_size = 0.0003,
+  control = list(max_iter = 100))
+fit$convergence_criterion
+# This short example demonstrates the workflow; check convergence before
+# interpreting results or comparing statistical performance.
 
 }
 \references{
 McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
+}
+\seealso{
+\code{\link{learner}} for fitting with the selected penalties.
 }
