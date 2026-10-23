@@ -21,46 +21,40 @@ plot_cv(
 \arguments{
 \item{x}{A result returned by \code{cv.learner()}.}
 
-\item{lambda_1_all}{Common-penalty candidates in the exact order used for CV.
-Required for a two-dimensional score array; omit for separate penalties.}
+\item{lambda_1_all}{Candidate common penalties, in the same order as in
+\code{cv.learner()}. Leave as \code{NULL} when separate penalties were used.}
 
-\item{lambda_2_all}{Balance-penalty candidates in the exact order used for CV.}
+\item{lambda_2_all}{Candidate balance penalties, in the same order as in
+\code{cv.learner()}.}
 
-\item{lambda_1_row_all, lambda_1_col_all}{Separate-penalty candidates in the
-exact order used for CV. Both are required for a three-dimensional array.}
+\item{lambda_1_row_all, lambda_1_col_all}{Candidate row and column penalties,
+in the same order as in \code{cv.learner()}. Both are needed when separate
+penalties were used.}
 
-\item{n_observed}{Optional positive integer giving the number of observed
-target entries used in CV. If supplied, scores are divided by this count and
-labeled Validation MSE. Otherwise the original sums are labeled Validation
-SSE. Missing target entries must not be included in this count.}
+\item{n_observed}{Number of observed target entries used in CV. If given,
+the scores are shown as mean squared errors; otherwise as sums of squared
+errors. Do not count missing entries.}
 
-\item{lambda_2_index}{Optional vector of distinct integer indices into
-\code{lambda_2_all}, selecting panels to draw in separate-penalty mode.
-\code{NULL} draws all panels. Not used in common-penalty mode.}
+\item{lambda_2_index}{Which balance-penalty panels to draw when separate
+penalties were used, as positions in \code{lambda_2_all}. The default draws
+all of them.}
 
-\item{log_labels}{Logical scalar. If TRUE, display base-10 logarithms of
-the candidates on the heatmap axes.
-All candidates on those axes must be strictly positive. Log labels are
-rounded to two decimal places. Defaults to FALSE.}
+\item{log_labels}{If TRUE, label the axes with base-10 logarithms of the
+candidates, which must then be positive. The default is FALSE.}
 
-\item{relative_limit}{Optional positive relative increase cutoff, default 0.3
-(30 percent). Larger finite errors are gray and labeled above the cutoff,
-never as diverged. NULL keeps all finite values in the color scale.}
+\item{relative_limit}{Cells whose error is more than this fraction above the
+smallest error are drawn gray and labeled as above the cutoff (default 0.3,
+or 30 percent). Use \code{NULL} to color every finite value.}
 
 \item{show_values}{Whether to print scores inside cells. Defaults to TRUE.}
 
 \item{main}{Plot title.}
 }
 \value{
-Invisibly, a list with \code{scores}, \code{scale}, \code{grids},
-\code{best_index}, \code{shown_lambda_2_index}, \code{color_limits}, and
-\code{unavailable_count}, \code{log_labels}, \code{score_range}, \code{minimum},
-\code{exact_minima}, \code{boundary}, and \code{lambda_2_slice_range}.
-Indices refer to the original candidate order. Boundary flags indicate a
-selected numerical endpoint on a grid with at least two distinct values.
-Also returns \code{display_data}, \code{display_limits}, \code{relative},
-\code{above_limit_count}, \code{plot} (the first ggplot page), and \code{plots}
-(all ggplot pages). The original absolute score diagnostics are unchanged.
+Invisibly, a list describing the plot. It includes the \code{scores},
+the selected combination (\code{best_index}), flags for selections on a grid
+boundary (\code{boundary}), and the ggplot pages (\code{plot} is the first
+page and \code{plots} holds all of them).
 }
 \description{
 Compare cross-validation errors across candidate penalties. Lighter cells
@@ -78,8 +72,7 @@ unavailable scores (NA) or errors above \code{relative_limit}; the cutoff
 affects only the display. When several combinations tie, the first is marked.
 A selected value at a grid boundary may suggest trying a wider grid.
 
-Supply \code{n_observed} to report mean squared error; otherwise the scores
-are sums of squared errors. This plot does not check convergence of the fits.
+This plot does not check whether the fits converged.
 Requires ggplot2 >= 3.4.0; install it with \code{install.packages("ggplot2")}.
 Save a returned page with \code{ggplot2::ggsave(plot = result$plot, ...)}.
 }

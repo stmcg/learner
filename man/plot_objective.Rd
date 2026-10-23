@@ -9,18 +9,13 @@ plot_objective(x, iterations = "all", main = NULL)
 \arguments{
 \item{x}{A result returned by \code{learner}.}
 
-\item{iterations}{Iterations to show: \code{"all"} (the default),
-\code{"near_optimum"}, or a vector of iteration numbers such as
-\code{1:1000}. Positive integer indices beyond the recorded history are
-ignored; at least one requested iteration must exist.
-\code{"near_optimum"} shows up to 41 consecutive records centered on the
-first smallest finite recorded objective value (20 before and 20 after).
-At either boundary the window shifts to stay within the recorded history;
-histories shorter than 41 records are shown in full. Both axes adjust to
-the selected window. Use numeric iteration indices for a different width.}
+\item{iterations}{Which iterations to show: \code{"all"} (the default),
+\code{"near_optimum"} for up to 41 iterations around the smallest recorded
+value, or a vector of iteration numbers such as \code{1:1000}. Use iteration
+numbers if you want a different width around the minimum.}
 
-\item{main}{Title of the plot. By default, \code{"Objective function"},
-with \code{"(near optimum)"} added when \code{iterations = "near_optimum"}.}
+\item{main}{Title of the plot. The default is \code{"Objective function"},
+with \code{"(near optimum)"} added for the near-optimum view.}
 }
 \value{
 Invisibly, a data frame of the plotted iterations and objective

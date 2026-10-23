@@ -17,35 +17,33 @@ plot_contributions(
 )
 }
 \arguments{
-\item{x}{A complete estimated matrix, a \code{learner()} result, or a
-\code{dlearner()} result. No rotation of the singular vectors is performed.}
+\item{x}{A complete estimated matrix, or a \code{learner()} or
+\code{dlearner()} result. The singular vectors are not rotated.}
 
-\item{r}{Number of components. Required for a matrix; defaults to the stored
-rank for a fitting result. Numerically zero directions are rejected.}
+\item{r}{Number of components. Required for a matrix; for a fitting result
+the default is its rank.}
 
-\item{row_index, column_index}{Optional distinct integer indices selecting
-variables to display, in display order. The same indices are used in all
-populations. SVD always uses the full matrices before subsetting.}
+\item{row_index, column_index}{Optional indices of the rows and columns to
+display. The singular vectors are always computed from the full matrices.}
 
-\item{max_display}{Maximum number of displayed variables on each side when
-indices are omitted; default 200. Deterministic evenly spaced indices are
-used, without changing the random-number state.}
+\item{max_display}{Maximum number of rows, and of columns, to display when
+no indices are given (default 200). Evenly spaced indices are used.}
 
-\item{limits}{Optional two positive upper limits for the color scales, in
-row-side then column-side order. Each scale runs from 0 (white) to its limit
-(dark red); larger values are shown in the darkest color, and the number of
-such entries is returned in \code{clipped_count}.}
+\item{limits}{Optional pair of positive upper limits for the color scales
+(row side, then column side). Each scale runs from 0 (white) to its limit
+(dark red). Larger values get the darkest color, and their number is returned
+as \code{clipped_count}.}
 
-\item{row_label, column_label}{Axis labels. Use Variant index and Phenotype
-index only when these accurately describe the input rows and columns.}
+\item{row_label, column_label}{Axis labels. The defaults are generic, so use
+labels that describe your rows and columns.}
 
-\item{main}{Title describing the input estimate.}
+\item{main}{Plot title.}
 }
 \value{
-Invisibly, a list with full \code{row_scores} and \code{column_scores},
-displayed \code{row_index} and \code{column_index}, \code{limits}, and
-\code{clipped_count}. Score matrices have variables in rows and components
-in columns; all values are returned without display clipping.
+Invisibly, a list with the full \code{row_scores} and
+\code{column_scores} (variables in rows, components in columns), the displayed
+\code{row_index} and \code{column_index}, \code{limits}, and
+\code{clipped_count}. The returned scores are not clipped.
 }
 \description{
 Show which rows and columns contribute to each latent component of a fitted
@@ -59,8 +57,8 @@ they sum to one over all variables on each side for each component.
 
 Scores describe contributions, not effect sizes or correlations. Selecting
 variables changes only the display, without rescaling scores. Components are
-not automatically matched across populations; when singular values tie,
-individual component contributions need not be unique.
+not matched across populations, and components with tied singular values are
+not unique.
 }
 \examples{
 fit <- dlearner(dat_multisource$Y_source, dat_multisource$Y_target, r = 3)

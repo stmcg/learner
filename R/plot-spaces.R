@@ -54,26 +54,26 @@ draw_matrix_panel <- function(values, x_index, y_index, limits, colors, title, x
 #' Compare patterns in the target and source latent spaces. Similar patterns
 #' suggest that the populations share similar spaces at the chosen rank.
 #'
-#' @param Y_target Complete finite target matrix, or a completed estimate.
-#' Missing values are rejected; the function does not impute them.
-#' @param Y_source Aligned complete source matrix or nonempty list of matrices.
-#' @param r Positive integer giving the retained rank for every matrix.
-#' @param row_index,column_index Optional distinct integer indices selecting
-#' variables to display, in display order. The same indices are used in all
-#' populations. SVD always uses the full matrices before subsetting.
-#' @param max_display Maximum number of displayed variables on each side when
-#' indices are omitted; default 200. Deterministic evenly spaced indices are
-#' used, without changing the random-number state.
-#' @param limits Optional two positive color limits, in row-side then column-side
-#' order. Each side uses a symmetric scale about zero shared across populations.
-#' Values beyond supplied limits are clipped for display and counts are returned.
-#' @param row_label,column_label Axis labels. Use Variant index and Phenotype
-#' index only when these accurately describe the input rows and columns.
-#' @param target_name Panel label describing the supplied target matrix.
-#' @return Invisibly, a list with \code{row_projectors}, \code{column_projectors},
-#' \code{row_index}, \code{column_index}, \code{limits}, and \code{clipped_count}.
-#' Each projector is the displayed submatrix, computed without allocating the
-#' full row-by-row projector. Its population name identifies the input.
+#' @param Y_target Complete target matrix, or a completed estimate. Missing
+#' values are not allowed.
+#' @param Y_source Source matrix, or a list of source matrices, with the same
+#' rows and columns as the target.
+#' @param r Rank used for every matrix.
+#' @param row_index,column_index Optional indices of the rows and columns to
+#' display. The singular vectors are always computed from the full matrices.
+#' @param max_display Maximum number of rows, and of columns, to display when
+#' no indices are given (default 200). Evenly spaced indices are used.
+#' @param limits Optional pair of positive color limits (row side, then column
+#' side). Each scale is symmetric around zero and shared across populations.
+#' Values beyond a limit get the extreme color, and their number is returned as
+#' \code{clipped_count}.
+#' @param row_label,column_label Axis labels. The defaults are generic, so use
+#' labels that describe your rows and columns.
+#' @param target_name Label for the target panel.
+#' @return Invisibly, a list with the displayed projection matrices
+#' (\code{row_projectors} and \code{column_projectors}, named by population), the
+#' displayed \code{row_index} and \code{column_index}, \code{limits}, and
+#' \code{clipped_count}.
 #' @details Each heatmap shows a projection matrix computed from the leading
 #' singular vectors. Column-side patterns appear above row-side patterns.
 #' Red indicates negative values and blue positive values; populations share
@@ -130,20 +130,20 @@ plot_source_spaces <- function(Y_target, Y_source, r, row_index=NULL, column_ind
 #' Show which rows and columns contribute to each latent component of a fitted
 #' target matrix, using squared singular-vector entries. Higher scores are darker red.
 #'
-#' @param x A complete estimated matrix, a \code{learner()} result, or a
-#' \code{dlearner()} result. No rotation of the singular vectors is performed.
-#' @param r Number of components. Required for a matrix; defaults to the stored
-#' rank for a fitting result. Numerically zero directions are rejected.
+#' @param x A complete estimated matrix, or a \code{learner()} or
+#' \code{dlearner()} result. The singular vectors are not rotated.
+#' @param r Number of components. Required for a matrix; for a fitting result
+#' the default is its rank.
 #' @inheritParams plot_source_spaces
-#' @param limits Optional two positive upper limits for the color scales, in
-#' row-side then column-side order. Each scale runs from 0 (white) to its limit
-#' (dark red); larger values are shown in the darkest color, and the number of
-#' such entries is returned in \code{clipped_count}.
-#' @param main Title describing the input estimate.
-#' @return Invisibly, a list with full \code{row_scores} and \code{column_scores},
-#' displayed \code{row_index} and \code{column_index}, \code{limits}, and
-#' \code{clipped_count}. Score matrices have variables in rows and components
-#' in columns; all values are returned without display clipping.
+#' @param limits Optional pair of positive upper limits for the color scales
+#' (row side, then column side). Each scale runs from 0 (white) to its limit
+#' (dark red). Larger values get the darkest color, and their number is returned
+#' as \code{clipped_count}.
+#' @param main Plot title.
+#' @return Invisibly, a list with the full \code{row_scores} and
+#' \code{column_scores} (variables in rows, components in columns), the displayed
+#' \code{row_index} and \code{column_index}, \code{limits}, and
+#' \code{clipped_count}. The returned scores are not clipped.
 #' @details Darker red indicates a larger contribution to a component.
 #' Columns are shown on the left and rows on the right, with separate color
 #' scales. Scores are squared singular-vector entries from the estimated matrix;
@@ -151,8 +151,8 @@ plot_source_spaces <- function(Y_target, Y_source, r, row_index=NULL, column_ind
 #'
 #' Scores describe contributions, not effect sizes or correlations. Selecting
 #' variables changes only the display, without rescaling scores. Components are
-#' not automatically matched across populations; when singular values tie,
-#' individual component contributions need not be unique.
+#' not matched across populations, and components with tied singular values are
+#' not unique.
 #'
 #' @examples
 #' fit <- dlearner(dat_multisource$Y_source, dat_multisource$Y_target, r = 3)

@@ -18,35 +18,35 @@ plot_source_spaces(
 )
 }
 \arguments{
-\item{Y_target}{Complete finite target matrix, or a completed estimate.
-Missing values are rejected; the function does not impute them.}
+\item{Y_target}{Complete target matrix, or a completed estimate. Missing
+values are not allowed.}
 
-\item{Y_source}{Aligned complete source matrix or nonempty list of matrices.}
+\item{Y_source}{Source matrix, or a list of source matrices, with the same
+rows and columns as the target.}
 
-\item{r}{Positive integer giving the retained rank for every matrix.}
+\item{r}{Rank used for every matrix.}
 
-\item{row_index, column_index}{Optional distinct integer indices selecting
-variables to display, in display order. The same indices are used in all
-populations. SVD always uses the full matrices before subsetting.}
+\item{row_index, column_index}{Optional indices of the rows and columns to
+display. The singular vectors are always computed from the full matrices.}
 
-\item{max_display}{Maximum number of displayed variables on each side when
-indices are omitted; default 200. Deterministic evenly spaced indices are
-used, without changing the random-number state.}
+\item{max_display}{Maximum number of rows, and of columns, to display when
+no indices are given (default 200). Evenly spaced indices are used.}
 
-\item{limits}{Optional two positive color limits, in row-side then column-side
-order. Each side uses a symmetric scale about zero shared across populations.
-Values beyond supplied limits are clipped for display and counts are returned.}
+\item{limits}{Optional pair of positive color limits (row side, then column
+side). Each scale is symmetric around zero and shared across populations.
+Values beyond a limit get the extreme color, and their number is returned as
+\code{clipped_count}.}
 
-\item{row_label, column_label}{Axis labels. Use Variant index and Phenotype
-index only when these accurately describe the input rows and columns.}
+\item{row_label, column_label}{Axis labels. The defaults are generic, so use
+labels that describe your rows and columns.}
 
-\item{target_name}{Panel label describing the supplied target matrix.}
+\item{target_name}{Label for the target panel.}
 }
 \value{
-Invisibly, a list with \code{row_projectors}, \code{column_projectors},
-\code{row_index}, \code{column_index}, \code{limits}, and \code{clipped_count}.
-Each projector is the displayed submatrix, computed without allocating the
-full row-by-row projector. Its population name identifies the input.
+Invisibly, a list with the displayed projection matrices
+(\code{row_projectors} and \code{column_projectors}, named by population), the
+displayed \code{row_index} and \code{column_index}, \code{limits}, and
+\code{clipped_count}.
 }
 \description{
 Compare patterns in the target and source latent spaces. Similar patterns
