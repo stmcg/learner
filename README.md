@@ -151,3 +151,8 @@ res_dlearner$dlearner_estimate[1:5, 1:5]
 #> [4,]  1.6347696 -2.91985925  0.04876288 -2.357504089  0.8127403
 #> [5,]  0.4757450  0.05665543 -1.50373470 -0.744076401 -0.2876033
 ```
+
+## Advanced examples
+
+For multiple sources, source weights, and separate row and column
+penalties, see the [advanced tutorial](vignettes/advanced-learner.Rmd).

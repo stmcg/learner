@@ -106,3 +106,8 @@ res_dlearner <- dlearner(Y_source = dat_highsim$Y_source,
                          Y_target = dat_highsim$Y_target)
 res_dlearner$dlearner_estimate[1:5, 1:5]
 ```
+
+## Advanced examples
+
+For multiple sources, source weights, and separate row and column penalties,
+see the [advanced tutorial](vignettes/advanced-learner.Rmd).
