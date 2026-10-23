@@ -63,45 +63,25 @@ Also returns \code{display_data}, \code{display_limits}, \code{relative},
 (all ggplot pages). The original absolute score diagnostics are unchanged.
 }
 \description{
-Draw a common-penalty heatmap or separate-penalty heatmaps, with a shared
-color scale and a black box at the first minimum in R array order.
+Compare cross-validation errors across candidate penalties. Lighter cells
+indicate lower error, and a black box marks the selected combination.
 }
 \details{
-Existing CV results do not store the full candidate grids, so callers must
-provide them. Lengths and the selected penalty values are checked, but these
-checks cannot detect every incorrectly supplied grid. Use the original grids,
-without sorting or removing duplicates. Axes are equally spaced candidate
-positions labeled with actual values, or their base-10 logarithms when
-\code{log_labels=TRUE}. This changes labels only, not scores, candidate order,
-or cell spacing. The reversed magma palette uses pale colors for lower error
-and dark colors for higher error. Cell labels show increases over the minimum.
+Supply the same penalty grids, in the same order, used in
+\code{cv.learner()}. With a common space penalty, the axes show that penalty
+and the balance penalty. With separate penalties, the axes show row and
+column penalties, with one panel per balance penalty and shared colors.
 
-Common mode shows \code{lambda_1_all} on the horizontal axis and
-\code{lambda_2_all} on the vertical axis. Separate mode shows the U-space
-penalty horizontally and the V-space penalty vertically, with one panel for
-each balance penalty. All panels share limits computed from the full score
-array, even when only some panels are selected. Up to six panels are drawn
-per page. Gray cells represent either non-finite scores (labeled NA) or
-finite scores above \code{relative_limit} (labeled with the cutoff).
-Non-finite scores are excluded from selection; the display cutoff does not
-affect parameter selection. Labels are omitted when \code{show_values = FALSE}.
-Only the first minimum is marked; a panel need not contain a black box.
-Captions report the score range, exact ties, and boundary selections. These are
-descriptive diagnostics, not significance or convergence tests.
+Colors and cell labels show the increase above the smallest CV error.
+If the minimum is zero, absolute errors are shown instead. Gray cells mark
+unavailable scores (NA) or errors above \code{relative_limit}; the cutoff
+affects only the display. When several combinations tie, the first is marked.
+A selected value at a grid boundary may suggest trying a wider grid.
 
-The stored \code{mse_all} values are sums of held-out squared errors. MSE
-conversion requires the correct \code{n_observed}; the function cannot infer
-this count from the scores. Neither this plot nor CV certifies convergence
-of the individual fits. No fitting is performed and \code{x} is unchanged.
-Requires optional ggplot2 >= 3.4.0; install it with
-\code{install.packages("ggplot2")}. Estimation and other plots do not require it.
-Draws with ggplot2 without modifying base graphics parameters. Each page shares
-one legend. A sufficiently large device is recommended for multiple panels.
-Relative increases are undefined when the minimum is zero; the display then
-uses absolute scores and ignores relative_limit. High relative error alone
-never establishes optimizer divergence. Non-finite scores are unavailable.
-Use ggplot2::ggsave(plot = result$plot, ...) to export the first page, or
-export each member of result$plots for multiple pages.
+Supply \code{n_observed} to report mean squared error; otherwise the scores
+are sums of squared errors. This plot does not check convergence of the fits.
+Requires ggplot2 >= 3.4.0; install it with \code{install.packages("ggplot2")}.
+Save a returned page with \code{ggplot2::ggsave(plot = result$plot, ...)}.
 }
 \examples{
 if (requireNamespace("ggplot2", quietly = TRUE) &&

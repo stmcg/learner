@@ -51,8 +51,8 @@ draw_matrix_panel <- function(values, x_index, y_index, limits, colors, title, x
 
 #' Compare target and source latent spaces
 #'
-#' Plot column-space and row-space projection submatrices for the target and
-#' each source, to compare their retained latent spaces.
+#' Compare patterns in the target and source latent spaces. Similar patterns
+#' suggest that the populations share similar spaces at the chosen rank.
 #'
 #' @param Y_target Complete finite target matrix, or a completed estimate.
 #' Missing values are rejected; the function does not impute them.
@@ -74,18 +74,16 @@ draw_matrix_panel <- function(values, x_index, y_index, limits, colors, title, x
 #' \code{row_index}, \code{column_index}, \code{limits}, and \code{clipped_count}.
 #' Each projector is the displayed submatrix, computed without allocating the
 #' full row-by-row projector. Its population name identifies the input.
-#' @details
-#' For an SVD basis B, the displayed matrix is a submatrix of B B-transpose.
-#' Column-side panels appear on top, row-side panels below. Red denotes negative
-#' values and blue positive values. Color scales are shared within each side,
-#' including across pages, but can differ between the two sides. At most three
-#' populations appear per page. Source names are taken from the input list when
-#' supplied. No name-based alignment or matching of factors is performed.
-#' These are individual population projectors, not the weighted source operator.
-#' A submatrix need not itself be an idempotent projector.
-#' Numerically zero retained singular directions are rejected. With repeated
-#' singular values at the truncation boundary the retained space is not unique.
-#' The input order must already encode any desired phenotype or genomic ordering.
+#' @details Each heatmap shows a projection matrix computed from the leading
+#' singular vectors. Column-side patterns appear above row-side patterns.
+#' Red indicates negative values and blue positive values; populations share
+#' a color scale within each side so their patterns can be compared.
+#'
+#' Rows and columns must already be aligned across populations. Selecting
+#' indices changes only what is displayed; spaces are estimated from the full
+#' matrices. These plots show each population separately, without source weights.
+#' Similar colors are a visual comparison, not a statistical test of shared spaces.
+#'
 #' @examples
 #' plot_source_spaces(dat_multisource$Y_target, dat_multisource$Y_source,
 #'                    r = 3, max_display = 20)
@@ -137,23 +135,25 @@ plot_source_spaces <- function(Y_target, Y_source, r, row_index=NULL, column_ind
 #' @param r Number of components. Required for a matrix; defaults to the stored
 #' rank for a fitting result. Numerically zero directions are rejected.
 #' @inheritParams plot_source_spaces
+#' @param limits Optional two positive upper limits for the color scales, in
+#' row-side then column-side order. Each scale runs from 0 (white) to its limit
+#' (dark red); larger values are shown in the darkest color, and the number of
+#' such entries is returned in \code{clipped_count}.
 #' @param main Title describing the input estimate.
 #' @return Invisibly, a list with full \code{row_scores} and \code{column_scores},
 #' displayed \code{row_index} and \code{column_index}, \code{limits}, and
 #' \code{clipped_count}. Score matrices have variables in rows and components
 #' in columns; all values are returned without display clipping.
-#' @details
-#' An SVD of the estimated matrix supplies U and V. Row scores are U squared
-#' elementwise; column scores are V squared elementwise. Scores sum to one per
-#' component over all variables on the corresponding side. They are not squared
-#' entries of the raw optimization factors, effect sizes, or correlations.
-#' Subsetting is applied only for display and scores are not renormalized.
-#' The left panel displays columns and the right panel rows. Color limits are
-#' separate for the two sides and start at zero. Optional limits specify row
-#' then column upper limits, with clipped-entry counts reported.
-#' Signs do not affect squared scores, but rotations within repeated singular
-#' subspaces can change component-specific scores. Components from different
-#' populations are not automatically aligned or given biological labels.
+#' @details Darker red indicates a larger contribution to a component.
+#' Columns are shown on the left and rows on the right, with separate color
+#' scales. Scores are squared singular-vector entries from the estimated matrix;
+#' they sum to one over all variables on each side for each component.
+#'
+#' Scores describe contributions, not effect sizes or correlations. Selecting
+#' variables changes only the display, without rescaling scores. Components are
+#' not automatically matched across populations; when singular values tie,
+#' individual component contributions need not be unique.
+#'
 #' @examples
 #' fit <- dlearner(dat_multisource$Y_source, dat_multisource$Y_target, r = 3)
 #' plot_contributions(fit,max_display=50)

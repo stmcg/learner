@@ -49,21 +49,19 @@ Each projector is the displayed submatrix, computed without allocating the
 full row-by-row projector. Its population name identifies the input.
 }
 \description{
-Plot column-space and row-space projection submatrices for the target and
-each source, to compare their retained latent spaces.
+Compare patterns in the target and source latent spaces. Similar patterns
+suggest that the populations share similar spaces at the chosen rank.
 }
 \details{
-For an SVD basis B, the displayed matrix is a submatrix of B B-transpose.
-Column-side panels appear on top, row-side panels below. Red denotes negative
-values and blue positive values. Color scales are shared within each side,
-including across pages, but can differ between the two sides. At most three
-populations appear per page. Source names are taken from the input list when
-supplied. No name-based alignment or matching of factors is performed.
-These are individual population projectors, not the weighted source operator.
-A submatrix need not itself be an idempotent projector.
-Numerically zero retained singular directions are rejected. With repeated
-singular values at the truncation boundary the retained space is not unique.
-The input order must already encode any desired phenotype or genomic ordering.
+Each heatmap shows a projection matrix computed from the leading
+singular vectors. Column-side patterns appear above row-side patterns.
+Red indicates negative values and blue positive values; populations share
+a color scale within each side so their patterns can be compared.
+
+Rows and columns must already be aligned across populations. Selecting
+indices changes only what is displayed; spaces are estimated from the full
+matrices. These plots show each population separately, without source weights.
+Similar colors are a visual comparison, not a statistical test of shared spaces.
 }
 \examples{
 plot_source_spaces(dat_multisource$Y_target, dat_multisource$Y_source,

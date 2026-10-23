@@ -31,9 +31,10 @@ populations. SVD always uses the full matrices before subsetting.}
 indices are omitted; default 200. Deterministic evenly spaced indices are
 used, without changing the random-number state.}
 
-\item{limits}{Optional two positive color limits, in row-side then column-side
-order. Each side uses a symmetric scale about zero shared across populations.
-Values beyond supplied limits are clipped for display and counts are returned.}
+\item{limits}{Optional two positive upper limits for the color scales, in
+row-side then column-side order. Each scale runs from 0 (white) to its limit
+(dark red); larger values are shown in the darkest color, and the number of
+such entries is returned in \code{clipped_count}.}
 
 \item{row_label, column_label}{Axis labels. Use Variant index and Phenotype
 index only when these accurately describe the input rows and columns.}
@@ -51,17 +52,15 @@ Show which rows and columns contribute to each latent component of a fitted
 target matrix, using squared singular-vector entries. Higher scores are darker red.
 }
 \details{
-An SVD of the estimated matrix supplies U and V. Row scores are U squared
-elementwise; column scores are V squared elementwise. Scores sum to one per
-component over all variables on the corresponding side. They are not squared
-entries of the raw optimization factors, effect sizes, or correlations.
-Subsetting is applied only for display and scores are not renormalized.
-The left panel displays columns and the right panel rows. Color limits are
-separate for the two sides and start at zero. Optional limits specify row
-then column upper limits, with clipped-entry counts reported.
-Signs do not affect squared scores, but rotations within repeated singular
-subspaces can change component-specific scores. Components from different
-populations are not automatically aligned or given biological labels.
+Darker red indicates a larger contribution to a component.
+Columns are shown on the left and rows on the right, with separate color
+scales. Scores are squared singular-vector entries from the estimated matrix;
+they sum to one over all variables on each side for each component.
+
+Scores describe contributions, not effect sizes or correlations. Selecting
+variables changes only the display, without rescaling scores. Components are
+not automatically matched across populations; when singular values tie,
+individual component contributions need not be unique.
 }
 \examples{
 fit <- dlearner(dat_multisource$Y_source, dat_multisource$Y_target, r = 3)

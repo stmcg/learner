@@ -31,14 +31,14 @@ Plots the values of the objective function at each iteration of the
 numerical optimization algorithm in \code{learner}.
 }
 \details{
-The red point marks the smallest objective value, which is also
-given above the plot. The objective value at the initialization is not
-included. With \code{iterations = "near_optimum"}, the plot shows a shaded
-band spanning each pair of consecutive objective values, so that values
-that alternate between iterations remain visible, and a line at their
-average. Each pair is placed halfway between its two iteration numbers.
-Only actual adjacent pairs are used; missing values interrupt the display.
-The legend is placed in the corner of the plot with the fewest data points.
+The line shows the recorded objective values. The red point marks
+the smallest recorded value when it is in the displayed range. Initialization
+is not included in this history.
+
+In the near-optimum view, the shaded band spans consecutive values and the
+line shows their average. A flat average with a visible band can indicate
+alternating values rather than convergence. The band is not a confidence
+interval. Use \code{iterations = "all"} or numeric indices to see the raw curve.
 }
 \examples{
 fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,
