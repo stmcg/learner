@@ -90,3 +90,6 @@ local({
   )
   usethis::use_data(dat_multisource, overwrite = TRUE, version = 2)
 })
+
+# To generate the asymmetric example independently, run:
+# source("data-raw/gen-asymmetric.R")
