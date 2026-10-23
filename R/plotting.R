@@ -1,17 +1,3 @@
-# Corner of the current plot where the legend (drawn with 'args') would cover
-# the fewest data points. Ties go to the first corner listed.
-legend_corner <- function(x, y, args) {
-  keep <- is.finite(x) & is.finite(y)
-  x <- x[keep]
-  y <- y[keep]
-  corners <- c('topright', 'topleft', 'bottomright', 'bottomleft')
-  count <- vapply(corners, function(corner) {
-    box <- do.call(graphics::legend, c(list(corner, plot = FALSE), args))$rect
-    sum(x >= box$left & x <= box$left + box$w & y <= box$top & y >= box$top - box$h)
-  }, numeric(1))
-  corners[which.min(count)]
-}
-
 #' Plot the objective function values of a LEARNER fit
 #'
 #' Plots the values of the objective function at each iteration of the
@@ -33,14 +19,13 @@ legend_corner <- function(x, y, args) {
 #' @return Invisibly, a data frame of the plotted iterations and objective
 #' values.
 #'
-#' @details The line shows the recorded objective values. The red point marks
-#' the smallest recorded value when it is in the displayed range. Initialization
-#' is not included in this history.
-#'
-#' In the near-optimum view, the shaded band spans consecutive values and the
-#' line shows their average. A flat average with a visible band can indicate
-#' alternating values rather than convergence. The band is not a confidence
-#' interval. Use \code{iterations = "all"} or numeric indices to see the raw curve.
+#' @details The line shows the recorded objective values, and each iteration is
+#' also marked with a dot when 100 or fewer iterations are shown. The red point
+#' marks the smallest recorded value when it is in the displayed range.
+#' Initialization is not included in this history. A curve that zigzags between
+#' two levels means that the objective alternates from one iteration to the next
+#' instead of settling; a flat-looking curve alone does not establish
+#' convergence.
 #'
 #' @examples
 #' fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,
@@ -84,8 +69,6 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
     main <- if (near) 'Objective function (near optimum)' else 'Objective function'
   }
   values <- replace(objective[shown], !finite[shown], NA_real_)
-  pairs <- if (near) objective_pairs(shown, values) else NULL
-  draw_pairs <- near && any(is.finite(pairs$average))
 
   old <- graphics::par(mar = c(5, 4.5, 4, 1.5))
   on.exit(graphics::par(old), add = TRUE)
@@ -96,67 +79,16 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
   graphics::mtext(paste0('Minimum: ', format(objective[minimum], digits = 6),
                          ' at iteration ', minimum),
                   side = 3, line = 0.6, cex = 0.8, col = 'gray30')
-  if (draw_pairs) {
-    # Separate runs prevent the band from bridging missing iterations.
-    keep <- which(is.finite(pairs$average))
-    runs <- split(keep, cumsum(c(TRUE, diff(keep) > 1L)))
-    for (indices in runs) {
-      part <- pairs[indices, , drop = FALSE]
-      if (nrow(part) == 1L) {
-        graphics::segments(part$iteration, part$lower, part$iteration, part$upper,
-                           col = grDevices::adjustcolor('#2166AC', 0.4), lwd = 4)
-      } else {
-        graphics::polygon(c(part$iteration, rev(part$iteration)),
-                          c(part$lower, rev(part$upper)),
-                          col = grDevices::adjustcolor('#2166AC', 0.4), border = NA)
-      }
-      graphics::lines(part$iteration, part$average, col = '#2166AC', lwd = 1.5,
-                     type = if (nrow(part) == 1L) 'p' else 'l')
-    }
-  } else {
-    graphics::lines(shown, values, col = '#2166AC', type = if (length(shown) == 1L) 'p' else 'l')
+  graphics::lines(shown, values, col = '#2166AC')
+  # Mark the individual iterations when few are shown, so that values that
+  # alternate from one iteration to the next can be told apart.
+  if (length(shown) <= 100L) {
+    graphics::points(shown, values, pch = 16, cex = 0.6, col = '#2166AC')
   }
   if (minimum %in% shown) {
-    graphics::points(minimum, objective[minimum], pch = 16, cex = 0.9, col = '#B2182B')
+    graphics::points(minimum, objective[minimum], pch = 16, cex = 1.1, col = '#B2182B')
   }
-  # Symbol keys distinguish the band, mean line, and minimum without colored text.
-  band_color <- grDevices::adjustcolor('#2166AC', 0.4)
-  labels <- if (draw_pairs)
-    c('Consecutive-iteration range', 'Pairwise average') else 'Objective value'
-  colors <- if (draw_pairs) c(band_color, '#2166AC') else '#2166AC'
-  symbols <- if (draw_pairs) c(22, NA) else NA
-  line_types <- if (draw_pairs) c(0, 1) else 1
-  if (minimum %in% shown) {
-    labels <- c(labels, 'Minimum recorded objective')
-    colors <- c(colors, '#B2182B')
-    symbols <- c(symbols, 16)
-    line_types <- c(line_types, 0)
-  }
-  x_data <- shown
-  y_data <- values
-  if (draw_pairs) {
-    x_data <- c(x_data, pairs$iteration, pairs$iteration)
-    y_data <- c(y_data, pairs$lower, pairs$upper)
-  }
-  legend_args <- list(inset = 0.02, legend = labels, col = colors,
-                      text.col = 'gray30', pch = symbols, pt.bg = band_color,
-                      pt.cex = 1.1, lty = line_types, lwd = 1.5, cex = 0.8,
-                      y.intersp = 1.3, bty = 'n')
-  do.call(graphics::legend,
-          c(list(legend_corner(x_data, y_data, legend_args)), legend_args))
   invisible(data.frame(iteration = shown, objective = objective[shown]))
-}
-
-# pair each objective value with the next one: iterations 1 and 2, then 2 and 3, and so on.
-objective_pairs <- function(iteration, values) {
-  left <- seq_len(max(0L, length(values) - 1L))
-  right <- left + 1L
-  valid <- is.finite(values[left]) & is.finite(values[right]) &
-    iteration[right] == iteration[left] + 1
-  data.frame(iteration = iteration[left] / 2 + iteration[right] / 2,
-             lower = ifelse(valid, pmin(values[left], values[right]), NA_real_),#the smaller value defines the lower edge of the band
-             upper = ifelse(valid, pmax(values[left], values[right]), NA_real_),#the larger value defines the upper edge of the band
-             average = ifelse(valid, values[left] / 2 + values[right] / 2, NA_real_))
 }
 
 #' Plot the LEARNER cross-validation scores

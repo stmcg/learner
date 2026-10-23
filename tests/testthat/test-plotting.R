@@ -63,7 +63,7 @@ test_that('near-optimum plots show the final stretch when the minimum is at the 
 test_that('near-optimum plots handle alternating and missing values and keep graphics settings', {
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
-  # Alternating values after a decrease; near_optimum draws them as a band.
+  # Alternating values after a decrease; near_optimum shows the raw values.
   values <- c(seq(50, 11, length.out = 40), 10 + rep(c(0, 0.5), 200))
   values[50] <- NA
   fit <- list(objective_values = values, convergence_criterion = 2L)
@@ -72,25 +72,6 @@ test_that('near-optimum plots handle alternating and missing values and keep gra
   expect_equal(result$iteration, seq_along(values))
   expect_equal(plot_objective(fit, iterations = 'near_optimum')$iteration, 21:61)
   expect_equal(graphics::par('mar'), old)
-})
-
-test_that('the objective legend is placed in an empty corner', {
-  path <- plot_device()
-  on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
-  args <- list(legend = c('a long legend label', 'second label', 'third label'),
-               lty = 1, cex = 0.8, y.intersp = 1.3, bty = 'n', inset = 0.02)
-  x <- 1:100
-  # A falling curve leaves the top right empty; a rising curve leaves the top left empty.
-  graphics::plot(x, rev(x), type = 'n')
-  expect_equal(legend_corner(x, rev(x), args), 'topright')
-  graphics::plot(x, x, type = 'n')
-  expect_equal(legend_corner(x, x, args), 'topleft')
-  # Non-finite values are ignored.
-  expect_equal(legend_corner(c(x, NA, 50), c(x, 5, Inf), args), 'topleft')
-  # Steep decrease followed by a flat stretch (typical objective history).
-  y <- c(seq(100, 10, length.out = 20), rep(10, 80))
-  graphics::plot(x, y, type = 'n')
-  expect_equal(legend_corner(x, y, args), 'topright')
 })
 
 test_that('objective plots handle flat, singleton, and non-finite histories', {
@@ -109,23 +90,10 @@ test_that('objective plots handle flat, singleton, and non-finite histories', {
   expect_error(plot_objective(list()), 'learner')
 })
 
-test_that('adjacent-pair summaries do not invent a final update or bridge gaps', {
-  values <- rep(c(10, 12), 5)
-  pairs <- objective_pairs(seq_along(values), values)
-  expect_equal(nrow(pairs), 9L)
-  expect_equal(pairs$iteration, seq(1.5, 9.5))
-  expect_equal(pairs$average, rep(11, 9))
-  expect_equal(pairs$lower, rep(10, 9))
-  expect_equal(pairs$upper, rep(12, 9))
-  gaps <- objective_pairs(1:5, c(3, NA, 1, 2, 4))
-  expect_equal(gaps$average, c(NA, NA, 1.5, 3))
-  skipped <- objective_pairs(c(1, 2, 4, 5), c(10, 12, 10, 12))
-  expect_equal(skipped$average, c(11, NA, 11))
-  expect_equal(nrow(objective_pairs(1, 4)), 0L)
-
+test_that('near-optimum plots handle short, alternating, and incomplete histories', {
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
-  for (history in list(values, c(1, 3), c(1, 3, NA, 2, 4), c(1, NA, 3))) {
+  for (history in list(rep(c(10, 12), 5), c(1, 3), c(1, 3, NA, 2, 4), c(1, NA, 3))) {
     expect_equal(plot_objective(list(objective_values = history),
                                 iterations = 'near_optimum')$objective, history)
   }

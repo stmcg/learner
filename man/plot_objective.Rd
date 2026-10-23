@@ -31,14 +31,13 @@ Plots the values of the objective function at each iteration of the
 numerical optimization algorithm in \code{learner}.
 }
 \details{
-The line shows the recorded objective values. The red point marks
-the smallest recorded value when it is in the displayed range. Initialization
-is not included in this history.
-
-In the near-optimum view, the shaded band spans consecutive values and the
-line shows their average. A flat average with a visible band can indicate
-alternating values rather than convergence. The band is not a confidence
-interval. Use \code{iterations = "all"} or numeric indices to see the raw curve.
+The line shows the recorded objective values, and each iteration is
+also marked with a dot when 100 or fewer iterations are shown. The red point
+marks the smallest recorded value when it is in the displayed range.
+Initialization is not included in this history. A curve that zigzags between
+two levels means that the objective alternates from one iteration to the next
+instead of settling; a flat-looking curve alone does not establish
+convergence.
 }
 \examples{
 fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,
