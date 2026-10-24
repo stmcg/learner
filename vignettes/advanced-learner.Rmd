@@ -1,0 +1,516 @@
+---
+title: "LEARNER and D-LEARNER: Multiple Sources, Source Weights, and Separate Penalties"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{LEARNER and D-LEARNER: Multiple Sources, Source Weights, and Separate Penalties}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 5)
+```
+
+The README introduces estimation with one source population. This tutorial
+explains two extensions, one at a time: using multiple sources, and allowing
+different penalties for the two latent spaces. We first introduce source
+weights shared by D-LEARNER and LEARNER, then explain how each method uses them.
+Finally, we return to one source to study separate penalties in LEARNER.
+
+Weights determine how source-space information is combined. Penalties control
+LEARNER's fit to the target and its departures from those spaces. D-LEARNER
+uses source weights but has no penalty parameters to tune.
+
+```{r load-package, message=FALSE}
+library(learner)
+```
+
+## 1. Starting Point: Two Methods and a Single Source
+
+Write the target estimate as $UV^\top$, with $U$ of size $p\times r$ and $V$
+of size $q\times r$. Let $P_U$ and $P_V$ project onto the leading source
+singular-vector spaces. The columns of $U$ span the signal matrix's column
+space, and the columns of $V$ span its row space. We use **U-space** and
+**V-space** throughout. In the package interface, `lambda_1_row` acts on $U$
+and `lambda_1_col` acts on $V$.
+
+D-LEARNER estimates the target by direct projection, $P_UY_0P_V$, without
+iterative optimization or penalty tuning. LEARNER instead fits target factors
+while penalizing departures from the source spaces. With complete target data
+$Y_0$, its single-source, common-penalty objective is
+
+$$
+L(U,V)=\|UV^\top-Y_0\|_F^2
++\lambda_1\|(I_p-P_U)U\|_F^2
++\lambda_1\|(I_q-P_V)V\|_F^2
++\lambda_2\|U^\top U-V^\top V\|_F^2.
+$$
+
+The first term fits the target data. The next two encourage the target factors
+to follow the source spaces, with common strength `lambda_1`. The last term,
+controlled by `lambda_2`, balances the scales of the two factors.
+
+For missing target entries, the fit term uses only observed entries and is
+divided by the observed fraction. Penalty terms stay the same. All examples
+below have complete observed matrices and fix the rank at 3 to focus on the
+extensions. See `?learner` for the optimization settings and stopping codes.
+
+## 2. Multiple Sources and Source Weights
+
+### Aligned populations and their precision
+
+Multiple related populations can provide different information about the target.
+Their usefulness depends on how well their spaces match the target and how
+precisely those spaces can be estimated.
+
+`dat_multisource` contains one target and two aligned sources, each with 100
+rows and 50 columns. Their rank-3 true signals share latent spaces. Independent
+normal noise has variance 0.10 for the target, 0.01 for A, and 0.50 for B.
+Thus A is observed more precisely than B.
+
+```{r multiple-data}
+sources <- dat_multisource$Y_source
+target <- dat_multisource$Y_target
+weights <- c(0.7, 0.3)
+```
+
+These weights are illustrative, not estimated. They correspond to sources in
+list order, are normalized to sum to one, and remain fixed during CV. Omitting
+weights gives equal weights. Sources must already have matching rows and
+columns in the same order.
+
+### Combining source-space information
+
+For source $k$, let $\hat U_k$ and $\hat V_k$ contain its leading orthonormal
+singular vectors at rank 3. The weights combine their projection matrices:
+
+$$
+\bar P_U=\sum_k w_k\hat U_k\hat U_k^\top,\qquad
+\bar P_V=\sum_k w_k\hat V_k\hat V_k^\top,
+\quad w_k\geq 0,\quad \sum_k w_k=1.
+$$
+
+A larger weight gives a source more influence in these combinations; it does
+not guarantee a more accurate estimate. The same weights are used on both sides.
+The combined matrices need not themselves be orthogonal projectors.
+
+These weights do not directly average the observed source matrices or the
+separately fitted estimates. Both methods below use the same combined spaces,
+but turn that information into a target estimate differently. Weight selection
+by cross-validation is outside this tutorial: all CV calls hold the weights fixed.
+
+## 3. D-LEARNER with Multiple Sources
+
+### Direct estimation without penalties
+
+D-LEARNER uses the same source list and weights without penalty tuning:
+
+$$\widehat\Theta_{\rm D}=\bar P_U Y_0\bar P_V.$$
+
+In general this is not the weighted average of the source-specific D-LEARNER
+estimates: multiplying the two weighted matrices also produces cross-source
+terms. The formula above is the operation implemented by `dlearner()`.
+
+### Compare source choices
+
+We compare sources using D-LEARNER at the same rank, so penalty tuning and
+iterative optimization do not introduce additional differences.
+
+```{r multiple-direct}
+direct <- dlearner(sources, target, r = 3, source_weights = weights)
+estimates <- list(
+  Target_only = dlearner(target, target, r = 3)$dlearner_estimate,
+  A_only = dlearner(sources$A, target, r = 3)$dlearner_estimate,
+  B_only = dlearner(sources$B, target, r = 3)$dlearner_estimate,
+  Weighted_A_B = direct$dlearner_estimate)
+source_errors <- vapply(estimates, function(estimate) {
+  norm(estimate - dat_multisource$Theta_target, "F")
+}, numeric(1))
+round(source_errors, 3)
+```
+
+Using the target as its own source gives its rank-3 truncated SVD. True signals
+are known only because these data are simulated; they are not used for fitting
+or CV. Smaller Frobenius error means a closer estimate of the true matrix.
+In this example A alone is best; the weighted fit improves on B alone but does
+not improve on A. These are single-dataset errors, not CV scores or a guarantee
+that averaging sources helps.
+
+## 4. LEARNER with Multiple Sources
+
+### From weights to penalties
+
+We now use the same data and fixed weights with LEARNER. Unlike D-LEARNER,
+LEARNER can move away from the combined source spaces to fit the target data.
+The penalties control that trade-off. We keep a common space penalty in this
+section so that multiple sources are the only extension to the basic method.
+
+The objective becomes
+
+$$
+L_{\rm multi}(U,V)=\|UV^\top-Y_0\|_F^2
++\lambda_1\|(I_p-\bar P_U)U\|_F^2
++\lambda_1\|(I_q-\bar P_V)V\|_F^2
++\lambda_2\|U^\top U-V^\top V\|_F^2.
+$$
+
+Weights determine the combined source-space matrices; `lambda_1` controls the
+penalty on departures from them. `lambda_2` balances the factor scales. A
+source weight is therefore not interchangeable with a penalty value. LEARNER uses
+the first source for initialization and, when rank is omitted, rank selection.
+
+### Select penalties and fit LEARNER
+
+Keep the two space penalties equal in this first example.
+
+```{r multiple-cv}
+space_grid <- c(0, 1, 10)
+balance_grid <- c(0.1, 1)
+set.seed(815)
+cv_multi <- cv.learner(
+  sources, target, r = 3, source_weights = weights,
+  lambda_1_all = space_grid, lambda_2_all = balance_grid,
+  n_folds = 3, step_size = 0.0003, control = list(max_iter = 2000))
+c(space = cv_multi$lambda_1_min, balance = cv_multi$lambda_2_min)
+```
+
+The heatmap compares the candidate penalties. Pale cells have lower error;
+the black box marks the selected combination. `n_observed` converts held-out
+sums of squared errors to mean squared errors. `plot_cv()` needs the ggplot2
+package (version 3.4.0 or later); if it is not installed, the two heatmap chunks
+in this tutorial are skipped.
+
+```{r multiple-cv-plot, eval = requireNamespace("ggplot2", quietly = TRUE) && utils::packageVersion("ggplot2") >= "3.4.0"}
+plot_cv(cv_multi, lambda_1_all = space_grid, lambda_2_all = balance_grid,
+        n_observed = sum(!is.na(target)))
+```
+
+Refit using all observed target entries:
+
+```{r multiple-refit}
+fit_multi <- learner(
+  sources, target, r = 3, source_weights = weights,
+  lambda_1 = cv_multi$lambda_1_min, lambda_2 = cv_multi$lambda_2_min,
+  step_size = 0.0003, control = list(max_iter = 2000))
+fit_multi$convergence_criterion
+```
+
+The result reports stopping code `r fit_multi$convergence_criterion` after
+`r length(fit_multi$objective_values)` updates. Code 1 means that the
+objective-change threshold was met; code 2 means the iteration limit was
+reached; code 3 indicates excessive growth or a non-finite update.
+
+In this run, CV selected space penalty `r cv_multi$lambda_1_min` and balance
+penalty `r cv_multi$lambda_2_min`, both at the upper grid boundary. These are
+choices within the supplied grid, not established optimal penalties. Section 6
+explains how to investigate boundaries and stopping behavior.
+
+## 5. LEARNER with Separate U- and V-Space Penalties
+
+We now return to a single source. Only the penalty structure changes in this
+example; source weighting is not involved. D-LEARNER has no corresponding
+penalty parameters.
+
+### An asymmetric example
+
+`dat_asymmetric` has one source and one target. Their true U-space is shared,
+whereas their true V-spaces differ. It adapts the U-shared/V-perturbed
+construction in the paper's simulation code, using 100 rows, 50 columns,
+rank 3, and independent noise with variances 0.10 (target) and 0.01 (source).
+See `?dat_asymmetric` for generation details.
+
+The simulation is adapted from Section 2.4.1 of the Supporting Information of
+McGrath, Zhu, O'Dea, Guo and Duan (2026, *Statistics in Medicine* 45(15-17),
+e70669), and separate row and column penalties are described in its Section 1.1.
+That section calls this setting "same column spaces but different row spaces":
+the span of U is the column space of the signal matrix, and the span of V is its
+row space. The settings below (step size, penalty grids, iteration budget) were chosen for
+this small example rather than taken from the paper, which used 500 by 500
+matrices of rank 4, a step size of 0.07 and 75 iterations.
+
+We might therefore want to borrow more strongly on the U side than on the V
+side. This is a reason to try separate penalties, rather than imposing that
+preference as the selected result.
+
+### What changes in the objective?
+
+With a single source, replace the common penalty by two values:
+
+$$
+L_{\rm separate}(U,V)=\|UV^\top-Y_0\|_F^2
++\lambda_{1,\rm row}\|(I_p-P_U)U\|_F^2
++\lambda_{1,\rm col}\|(I_q-P_V)V\|_F^2
++\lambda_2\|U^\top U-V^\top V\|_F^2.
+$$
+
+Equal row and column penalties recover the common-penalty objective. Select
+both penalties from the data rather than using the known simulation truth.
+
+### Compare common and separate penalties
+
+Use the same rank, folds, step size, and iteration budget. The common grid is
+the diagonal of the separate grid, so the separate search includes every common
+candidate as well as unequal pairs. Resetting the seed makes the folds match.
+
+```{r asymmetric-comparison}
+# One source: the true U-space is shared, whereas the true V-spaces differ.
+dat <- learner::dat_asymmetric
+space_grid <- c(0, 10, 100)
+balance_grid <- c(0.001, 0.01, 0.1, 1)
+settings <- list(max_iter = 2000)
+
+# Reset the seed so both searches use the same validation folds. The common
+# grid is the diagonal of the separate grid; rank and optimizer settings match.
+set.seed(815)
+cv_common <- learner::cv.learner(
+  dat$Y_source, dat$Y_target, r = 3,
+  lambda_1_all = space_grid, lambda_2_all = balance_grid,
+  n_folds = 3, step_size = 0.003, control = settings)
+set.seed(815)
+cv_separate <- learner::cv.learner(
+  dat$Y_source, dat$Y_target, r = 3,
+  lambda_1_row_all = space_grid, lambda_1_col_all = space_grid,
+  lambda_2_all = balance_grid, n_folds = 3,
+  step_size = 0.003, control = settings)
+
+fit_common <- learner::learner(
+  dat$Y_source, dat$Y_target, r = 3,
+  lambda_1 = cv_common$lambda_1_min, lambda_2 = cv_common$lambda_2_min,
+  step_size = 0.003, control = settings)
+fit_separate <- learner::learner(
+  dat$Y_source, dat$Y_target, r = 3,
+  lambda_1_row = cv_separate$lambda_1_row_min,
+  lambda_1_col = cv_separate$lambda_1_col_min,
+  lambda_2 = cv_separate$lambda_2_min, step_size = 0.003, control = settings)
+
+comparison <- data.frame(
+  method = c('Common penalties', 'Separate penalties'),
+  lambda_row = c(cv_common$lambda_1_min, cv_separate$lambda_1_row_min),
+  lambda_col = c(cv_common$lambda_1_min, cv_separate$lambda_1_col_min),
+  lambda_balance = c(cv_common$lambda_2_min, cv_separate$lambda_2_min),
+  cv_mse = c(min(cv_common$mse_all), min(cv_separate$mse_all)) / length(dat$Y_target),
+  frobenius_error = c(norm(fit_common$learner_estimate - dat$Theta_target, 'F'),
+                      norm(fit_separate$learner_estimate - dat$Theta_target, 'F')),
+  stop_code = c(fit_common$convergence_criterion, fit_separate$convergence_criterion))
+print(comparison, row.names = FALSE)
+# This is one simulation, not a general performance claim. The minimum CV score
+# was used for selection, so it is not an independent test error. Check stopping
+# codes and grid boundaries before interpreting a selected fit.
+```
+
+A lower minimum CV score for the larger search is not independent evidence of
+better prediction: that score was used to select parameters. Frobenius errors
+compare refitted estimates with simulation truth. Interpret both alongside
+stopping codes, and use repeated simulations or an independent test set for a
+performance study. This single example does not guarantee unequal selected
+penalties or improved estimation.
+
+In this run, the separate search selected a U-space penalty (`lambda_1_row`) of
+`r cv_separate$lambda_1_row_min` and a V-space penalty (`lambda_1_col`) of
+`r cv_separate$lambda_1_col_min`, placing a stronger penalty on
+departures from the shared U-space, as the construction suggests. A penalty of
+100 versus 10 does not mean that ten times as much information is transferred:
+the penalty terms also depend on the factors and their departures from the
+source spaces. The common search selected
+`r cv_common$lambda_1_min` for both. The selected U penalty is the largest value
+in the grid (`r max(space_grid)`), so a larger grid might change the choice;
+the grid is kept small so that the example runs quickly.
+
+In this asymmetric-space example, separate penalties allow different borrowing
+strength for the shared U space and the different V space. In this simulation
+the separate fit had a
+`r if (comparison$frobenius_error[2] < comparison$frobenius_error[1]) "lower" else "higher"`
+estimation error than the common fit (Frobenius error
+`r round(comparison$frobenius_error[2], 2)` compared with
+`r round(comparison$frobenius_error[1], 2)`). The size of the difference depends
+on the balance grid and on the cross-validation split, and this is one simulated
+data set, so it should not be read as a general result.
+
+## 6. Diagnostics and Sensitivity Checks
+
+### Grid boundaries and balance-penalty sensitivity
+
+For the multiple-source example, both selected penalties are at their upper
+grid endpoints. In exploratory runs, extending the space grid to 100 and the
+balance grid to 10, then extending the space grid to 1000, moved the selection
+to the upper endpoints again. This illustrates why a selected value should be
+interpreted relative to the grid supplied, rather than as a best penalty.
+
+For the asymmetric example, the selected U penalty is also at the upper endpoint,
+while the common balance penalty is at the lower endpoint. Extending a grid can
+change both the selected parameters and the estimation-error comparison.
+
+The balance penalty is less well determined than the space penalties. The common
+search selected `r cv_common$lambda_2_min`, which is
+`r if (cv_common$lambda_2_min == min(balance_grid)) "the smallest value in the grid" else if (cv_common$lambda_2_min == max(balance_grid)) "the largest value in the grid" else "inside the grid"`,
+and the separate search selected `r cv_separate$lambda_2_min`. At the selected
+space penalties the CV scores for the `r length(balance_grid)` balance values are
+close to one another (see the plot below, if ggplot2 is available), so the
+selected balance penalty can change with the fold split or with `step_size`. A
+grid that continues below `r min(balance_grid)` can also change the common
+selection and the size of the difference between the two fits.
+
+```{r asymmetric-cv-plot, eval = requireNamespace("ggplot2", quietly = TRUE) && utils::packageVersion("ggplot2") >= "3.4.0"}
+plot_cv(cv_separate, lambda_1_row_all = space_grid,
+        lambda_1_col_all = space_grid, lambda_2_all = balance_grid,
+        n_observed = sum(!is.na(dat$Y_target)))
+```
+
+### Final refits and fits inside cross-validation
+
+The stop codes in the table (`r fit_common$convergence_criterion` for the common
+refit, `r fit_separate$convergence_criterion` for the separate refit) describe
+the two refits only. Code 1 means that the change in the objective fell below
+the threshold, and code 2 that the iteration limit was reached.
+`cv.learner()` does not report the stop codes of the fits it runs inside
+cross-validation. When this example was prepared, about a third of those fits in
+each search reached the iteration limit. Meeting the threshold does not by itself
+show that a fit is close to its minimum, and a fit that reaches the limit can
+still give a usable held-out score, so it is more informative to check whether
+the selection is stable. Doubling `max_iter` or changing `step_size` to 0.002,
+0.005, 0.001 or 0.0005 (with larger budgets for the smaller steps) left the
+penalties selected by both searches unchanged. A larger step size of 0.01 (with
+2000 updates) changed only the balance penalty chosen by the separate search.
+
+
+
+### Reproduce the sensitivity checks
+
+The following optional code uses the asymmetric data, rank, grids and fold seed
+from Section 5. It repeats both searches and reports the selected penalties,
+refit errors and stopping codes. It is not run when the vignette is built.
+The smaller steps are paired with larger iteration budgets.
+
+```{r sensitivity-checks, eval=FALSE}
+check_setting <- function(step, budget) {
+  rows <- lapply(c(FALSE, TRUE), function(separate) {
+    grids <- if (separate) {
+      list(lambda_1_row_all = space_grid, lambda_1_col_all = space_grid)
+    } else {
+      list(lambda_1_all = space_grid)
+    }
+    set.seed(815)
+    cv <- do.call(cv.learner, c(list(
+      Y_source = dat$Y_source, Y_target = dat$Y_target, r = 3,
+      lambda_2_all = balance_grid, n_folds = 3, step_size = step,
+      control = list(max_iter = budget)), grids))
+    u <- if (separate) cv$lambda_1_row_min else cv$lambda_1_min
+    v <- if (separate) cv$lambda_1_col_min else cv$lambda_1_min
+    fit <- learner(dat$Y_source, dat$Y_target, r = 3,
+                   lambda_1_row = u, lambda_1_col = v,
+                   lambda_2 = cv$lambda_2_min, step_size = step,
+                   control = list(max_iter = budget))
+    data.frame(method = if (separate) "Separate" else "Common",
+               step_size = step, max_iter = budget,
+               U_penalty = u, V_penalty = v, balance = cv$lambda_2_min,
+               error = norm(fit$learner_estimate - dat$Theta_target, "F"),
+               stop_code = fit$convergence_criterion)
+  })
+  do.call(rbind, rows)
+}
+configurations <- data.frame(
+  step = c(0.003, 0.003, 0.002, 0.005, 0.001, 0.0005, 0.01),
+  budget = c(2000, 4000, 6000, 4000, 10000, 20000, 2000))
+sensitivity <- do.call(rbind, lapply(seq_len(nrow(configurations)), function(i) {
+  check_setting(configurations$step[i], configurations$budget[i])
+}))
+print(sensitivity, row.names = FALSE)
+```
+
+To inspect the fits *inside* CV, the next optional block reconstructs the three
+folds and fits each candidate. Common-penalty candidates are the diagonal of
+the separate grid, so they can be inspected from the same results. This uses
+complete target data; with missing data, sample only observed entries.
+
+```{r inner-cv-stopping, eval=FALSE}
+set.seed(815)
+indices <- sample(which(!is.na(dat$Y_target)))
+n <- length(indices)
+folds <- lapply(1:3, function(k) {
+  indices[seq.int(floor((k - 1) * n / 3) + 1, floor(k * n / 3))]
+})
+grid <- expand.grid(U = space_grid, V = space_grid, balance = balance_grid)
+inner_fits <- do.call(rbind, lapply(seq_len(nrow(grid)), function(i) {
+  do.call(rbind, lapply(1:3, function(k) {
+    training <- dat$Y_target
+    training[folds[[k]]] <- NA
+    fit <- learner(dat$Y_source, training, r = 3,
+                   lambda_1_row = grid$U[i], lambda_1_col = grid$V[i],
+                   lambda_2 = grid$balance[i], step_size = 0.003,
+                   control = list(max_iter = 2000))
+    data.frame(U = grid$U[i], V = grid$V[i], balance = grid$balance[i],
+               fold = k, stop_code = fit$convergence_criterion)
+  }))
+}))
+table(inner_fits$stop_code)
+with(subset(inner_fits, U == V), table(stop_code))
+```
+
+Changing the penalty grids above also allows grid sensitivity to be explored.
+For the multiple-source example, rerun Section 4 with expanded grids and keep
+its data, weights and fold seed fixed. In either workflow, simulation truth is
+used only to describe estimation error after selection, not to choose penalties.
+
+### Inspect the objective history
+
+```{r asymmetric-objective}
+plot_objective(fit_separate)
+```
+
+The curve shows the recorded objective values of the separate-penalty fit,
+`r length(fit_separate$objective_values)` updates in all (stop code
+`r fit_separate$convergence_criterion`). A curve that ends at the iteration limit
+cannot show whether more iterations would still change the fit. A larger
+`max_iter` helps if the objective is still decreasing, and can help if an
+alternation between two values is shrinking, though slowly. Changing `step_size`
+can help as well.
+
+To inspect a specific range, use `iterations = 1:100`. The
+`iterations = "near_optimum"` view shows up to 41 records around the smallest
+recorded value. It draws the raw values, so a curve that zigzags between two
+levels shows that the objective alternates from one iteration to the next
+instead of settling.
+
+### Additional estimates and diagnostic views
+
+D-LEARNER still projects onto both source spaces directly, without separate
+penalties. It provides another estimate to inspect, not a separate-penalty fit.
+The target as its own source gives the target-only truncated SVD, shown as a
+reference. In this example D-LEARNER has the larger error of the two, which can
+happen when one source space differs from the target's, because D-LEARNER relies
+on both.
+
+```{r asymmetric-direct}
+direct_asymmetric <- dlearner(dat$Y_source, dat$Y_target, r = 3)
+target_only <- dlearner(dat$Y_target, dat$Y_target, r = 3)
+c(Target_only = norm(target_only$dlearner_estimate - dat$Theta_target, "F"),
+  D_LEARNER = norm(direct_asymmetric$dlearner_estimate - dat$Theta_target, "F"))
+```
+
+Additional diagnostic views are available:
+
+```{r additional-plots, eval=FALSE}
+plot_source_spaces(dat$Y_target, dat$Y_source, r = 3)
+plot_contributions(fit_separate)
+```
+
+## 7. Practical Takeaways
+
+Use source weights to specify how multiple populations contribute to the
+combined source-space information. D-LEARNER applies that information directly;
+LEARNER also uses penalties to control departures from the spaces while fitting
+the target. Separate U- and V-space penalties allow those departures to be
+penalized differently when a common strength is too restrictive.
+
+Start with the single-source workflow in the README. Introduce multiple sources
+when relevant aligned populations are available, and consider separate penalties
+when the two spaces may differ in similarity. These extensions can be combined,
+but are presented separately here to make their roles clear. Check grid
+boundaries and stopping behavior before interpreting a selected fit. Simulation
+truth helps explain these examples; it is not available for choosing parameters
+in an application, and one example does not establish a general advantage.
+
+See [`?learner`](../help/learner), [`?cv.learner`](../help/cv.learner), [`?dlearner`](../help/dlearner), [`?dat_multisource`](../help/dat_multisource), and [`?dat_asymmetric`](../help/dat_asymmetric) for details.

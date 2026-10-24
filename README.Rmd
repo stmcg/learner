@@ -4,11 +4,12 @@ output: github_document
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, include = FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  out.width = "100%"
+  out.width = "100%", fig.width = 8, fig.height = 5,
+  fig.path = "README_files/figure-gfm/"
 )
 ```
 
@@ -36,10 +37,16 @@ You can install the development version of `learner` from [GitHub](https://githu
 devtools::install_github("stmcg/learner")
 ```
 
+`plot_cv()` needs the ggplot2 package (version 3.4.0 or later):
+
+``` r
+install.packages("ggplot2")
+```
+
 ## Example
 
 We illustrate an example of how `learner` can be used. We first load the package.
-```{r, results="hide", message=FALSE}
+```{r load-package, results="hide", message=FALSE}
 library(learner)
 ```
 
@@ -47,45 +54,60 @@ In this illustration, we will use one of the toy data sets in the package (`dat_
 
 #### LEARNER Method
 
-We can apply the LEARNER method via the `learner` function. 
+We can apply the LEARNER method via the `learner` function.
 
 This method allows for flexible patterns of heterogeneity across the source and target populations. It consequently requires specifying the tuning parameters `lambda_1` and `lambda_2` which control the degree of transfer learning between the populations. These values can be selected based on cross-validation via the `cv.learner` function. For example, we can specify candidate values of 1, 10, and 100 for `lambda_1` and `lambda_2` and select the optimal values based on cross-validation as follows:
-```{r}
-res_cv.learner <- cv.learner(Y_source = dat_highsim$Y_source, 
-                             Y_target = dat_highsim$Y_target, 
-                             lambda_1_all = c(1, 10, 100), 
-                             lambda_2_all = c(1, 10, 100), 
+```{r single-source-cv}
+set.seed(815)
+res_cv.learner <- cv.learner(Y_source = dat_highsim$Y_source,
+                             Y_target = dat_highsim$Y_target,
+                             lambda_1_all = c(1, 10, 100),
+                             lambda_2_all = c(1, 10, 100),
                              step_size = 0.003)
 res_cv.learner$lambda_1_min
 res_cv.learner$lambda_2_min
 ```
 
-Next, we apply the `learner` function with these values of `lambda_1` and `lambda_2`: 
-```{r}
-res_learner <- learner(Y_source = dat_highsim$Y_source, 
+The heatmap shows the cross-validation error for each candidate combination.
+Lighter cells indicate lower error; the black box marks the selected combination.
+This plot requires the optional package `ggplot2` (version 3.4.0 or later).
+
+```{r cv-heatmap}
+plot_cv(res_cv.learner, lambda_1_all = c(1, 10, 100),
+        lambda_2_all = c(1, 10, 100),
+        n_observed = sum(!is.na(dat_highsim$Y_target)))
+```
+
+Next, we apply the `learner` function with these values of `lambda_1` and `lambda_2`:
+```{r single-source-fit}
+res_learner <- learner(Y_source = dat_highsim$Y_source,
                        Y_target = dat_highsim$Y_target,
-                       lambda_1 = 100, lambda_2 = 1, 
+                       lambda_1 = res_cv.learner$lambda_1_min,
+                       lambda_2 = res_cv.learner$lambda_2_min,
                        step_size = 0.003)
 ```
 The LEARNER estimate is given by the `learner_estimate` component in the output of the `learner` function, e.g.,
-```{r}
+```{r single-source-estimate}
 res_learner$learner_estimate[1:5, 1:5]
 ```
-We can check the convergence of the numerical optimization algorithm by plotting the values of the objective function at each iteration:
-```{r, out.width="75%"}
-plot(res_learner$objective_values, 
-     xlab = 'Iteration', ylab = 'Objective function',
-     type = 'l', col = 'blue', lwd = 2)
-```
+We can inspect how the objective function changes during optimization with
+`plot_objective()`. A decreasing curve shows progress toward a smaller objective;
+a flat-looking curve alone does not establish convergence.
 
+```{r objective-history, out.width="75%"}
+plot_objective(res_learner)
+```
 
 #### D-LEARNER Method
 
 We can apply the D-LEARNER method via the `dlearner` function. This method makes stronger assumptions on the heterogeneity across the source and target populations. It consequently does not rely on choosing tuning parameters. The `dlearner` function can be applied as follows:
-```{r}
-res_dlearner <- dlearner(Y_source = dat_highsim$Y_source, 
+```{r single-source-direct}
+res_dlearner <- dlearner(Y_source = dat_highsim$Y_source,
                          Y_target = dat_highsim$Y_target)
 res_dlearner$dlearner_estimate[1:5, 1:5]
 ```
 
+## Advanced examples
 
+For multiple sources, source weights, and separate row and column penalties,
+see the [advanced tutorial](vignettes/advanced-learner.Rmd).

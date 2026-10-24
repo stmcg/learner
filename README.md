@@ -36,6 +36,12 @@ You can install the development version of `learner` from
 devtools::install_github("stmcg/learner")
 ```
 
+`plot_cv()` needs the ggplot2 package (version 3.4.0 or later):
+
+``` r
+install.packages("ggplot2")
+```
+
 ## Example
 
 We illustrate an example of how `learner` can be used. We first load the
@@ -67,10 +73,11 @@ can specify candidate values of 1, 10, and 100 for `lambda_1` and
 follows:
 
 ``` r
-res_cv.learner <- cv.learner(Y_source = dat_highsim$Y_source, 
-                             Y_target = dat_highsim$Y_target, 
-                             lambda_1_all = c(1, 10, 100), 
-                             lambda_2_all = c(1, 10, 100), 
+set.seed(815)
+res_cv.learner <- cv.learner(Y_source = dat_highsim$Y_source,
+                             Y_target = dat_highsim$Y_target,
+                             lambda_1_all = c(1, 10, 100),
+                             lambda_2_all = c(1, 10, 100),
                              step_size = 0.003)
 res_cv.learner$lambda_1_min
 #> [1] 100
@@ -78,13 +85,27 @@ res_cv.learner$lambda_2_min
 #> [1] 1
 ```
 
+The heatmap shows the cross-validation error for each candidate
+combination. Lighter cells indicate lower error; the black box marks the
+selected combination. This plot requires the optional package `ggplot2`
+(version 3.4.0 or later).
+
+``` r
+plot_cv(res_cv.learner, lambda_1_all = c(1, 10, 100),
+        lambda_2_all = c(1, 10, 100),
+        n_observed = sum(!is.na(dat_highsim$Y_target)))
+```
+
+<img src="README_files/figure-gfm/cv-heatmap-1.png" alt="" width="100%" />
+
 Next, we apply the `learner` function with these values of `lambda_1`
 and `lambda_2`:
 
 ``` r
-res_learner <- learner(Y_source = dat_highsim$Y_source, 
+res_learner <- learner(Y_source = dat_highsim$Y_source,
                        Y_target = dat_highsim$Y_target,
-                       lambda_1 = 100, lambda_2 = 1, 
+                       lambda_1 = res_cv.learner$lambda_1_min,
+                       lambda_2 = res_cv.learner$lambda_2_min,
                        step_size = 0.003)
 ```
 
@@ -101,16 +122,16 @@ res_learner$learner_estimate[1:5, 1:5]
 #> [5,]  0.5046133  0.01845138 -1.4798209 -0.765601712 -0.2230227
 ```
 
-We can check the convergence of the numerical optimization algorithm by
-plotting the values of the objective function at each iteration:
+We can inspect how the objective function changes during optimization
+with `plot_objective()`. A decreasing curve shows progress toward a
+smaller objective; a flat-looking curve alone does not establish
+convergence.
 
 ``` r
-plot(res_learner$objective_values, 
-     xlab = 'Iteration', ylab = 'Objective function',
-     type = 'l', col = 'blue', lwd = 2)
+plot_objective(res_learner)
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-6-1.png" width="75%" />
+<img src="README_files/figure-gfm/objective-history-1.png" alt="" width="75%" />
 
 #### D-LEARNER Method
 
@@ -120,7 +141,7 @@ and target populations. It consequently does not rely on choosing tuning
 parameters. The `dlearner` function can be applied as follows:
 
 ``` r
-res_dlearner <- dlearner(Y_source = dat_highsim$Y_source, 
+res_dlearner <- dlearner(Y_source = dat_highsim$Y_source,
                          Y_target = dat_highsim$Y_target)
 res_dlearner$dlearner_estimate[1:5, 1:5]
 #>            [,1]        [,2]        [,3]         [,4]       [,5]
@@ -130,3 +151,8 @@ res_dlearner$dlearner_estimate[1:5, 1:5]
 #> [4,]  1.6347696 -2.91985925  0.04876288 -2.357504089  0.8127403
 #> [5,]  0.4757450  0.05665543 -1.50373470 -0.744076401 -0.2876033
 ```
+
+## Advanced examples
+
+For multiple sources, source weights, and separate row and column
+penalties, see the [advanced tutorial](vignettes/advanced-learner.Rmd).
