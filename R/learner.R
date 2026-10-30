@@ -59,6 +59,11 @@
 #' to the row, column, and balance grids, in that order. Divide by the number
 #' of observed target entries to obtain mean squared errors.}
 #' \item{r}{Rank used in the fits.}
+#' \item{lambda_1_all, lambda_2_all, lambda_1_row_all, lambda_1_col_all}{The
+#' candidate grids in their original order. Only grids used in the search are
+#' returned. \code{\link{plot_cv}} reads these automatically.}
+#' \item{n_observed}{Number of observed target entries, used to convert the
+#' summed validation errors to mean squared errors when plotting.}
 #'
 #' @references
 #' McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
@@ -151,7 +156,7 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
   scores <- cv_learner_cpp(sources$matrices, Y_target, sources$weights,
                            grid$row, grid$col, grid$balance, step_size,
                            control$max_iter, control$threshold, n_cores, r,
-                           control$max_value, index_set)
+                           control$max_value, index_set, control$stopping_rule == "relative", control$window)
   if (!any(is.finite(scores))) stop('No candidate produced finite validation errors.')
   if (any(!is.finite(scores))) warning('Some candidates produced non-finite validation errors and were excluded.')
   scores[!is.finite(scores)] <- Inf
@@ -160,11 +165,14 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
   mse_all <- array(scores, dim = grid_dim)
   if (!separate) {
     return(list(lambda_1_min = grid$row[best], lambda_2_min = grid$balance[best],
-                mse_all = mse_all, r = r))
+                mse_all = mse_all, r = r, lambda_1_all = lambda_1_all,
+                lambda_2_all = lambda_2_all, n_observed = n_indices))
   }
   list(lambda_1_min = NA_real_, lambda_2_min = grid$balance[best],
        lambda_1_row_min = grid$row[best], lambda_1_col_min = grid$col[best],
-       mse_all = mse_all, r = r)
+       mse_all = mse_all, r = r, lambda_1_row_all = lambda_1_row_all,
+       lambda_1_col_all = lambda_1_col_all, lambda_2_all = lambda_2_all,
+       n_observed = n_indices)
 }
 
 #' Latent space-based transfer learning
@@ -188,13 +196,26 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' \eqn{U} and \eqn{V} to have comparable scale.
 #' @param step_size Step size in the optimization algorithm. Smaller values may
 #' reduce oscillation but require more iterations.
-#' @param control List of settings controlling when optimization stops:
+#' @param control List of settings that decide when the fit stops. All are optional.
 #' \describe{
-#' \item{\code{max_iter}}{Maximum number of updates; default \code{100}.}
-#' \item{\code{threshold}}{Stop when the absolute change between consecutive
-#' objective values is smaller than this value; default \code{0.001}.}
-#' \item{\code{max_value}}{Stop if the objective grows beyond this multiple of
-#' its preceding value; default \code{10}.}}
+#' \item{\code{max_iter}}{Maximum number of updates. Default \code{100}. This is
+#' small: on the example data, a stopping rule was met only after several hundred
+#' updates or more, so a larger value such as \code{1e4} is often needed. The fit
+#' still stops early once the rule is met.}
+#' \item{\code{stopping_rule}}{How a change in the objective is measured.
+#' \code{"absolute"} (the default) uses \code{abs(L_t - L_{t-1})}.
+#' \code{"relative"} uses \code{abs(L_t - L_{t-1}) / abs(L_{t-1})}, where
+#' \code{L_t} is the objective after update \code{t}.}
+#' \item{\code{window}}{Number of changes in a row that must be small before the
+#' fit stops. Default \code{1} for \code{"absolute"} and \code{5} for \code{"relative"}.
+#' Can also be written \code{k}. Giving both \code{window} and \code{k} is an error.}
+#' \item{\code{threshold}}{A change is small if it is strictly less than this value.
+#' Default \code{0.001} for \code{"absolute"} and \code{1e-6} for \code{"relative"}.
+#' With \code{0}, no change is ever small, so the fit runs until \code{max_iter}
+#' unless it stops with code 3. Can also be written \code{epsilon}. Giving both
+#' \code{threshold} and \code{epsilon} is an error.}
+#' \item{\code{max_value}}{Stop with code 3 if the objective becomes more than this
+#' many times its previous value. Default \code{10}.}}
 #' @param lambda_1_row,lambda_1_col Separate source-space penalties for the row
 #' factor \eqn{U} and column factor \eqn{V}, respectively. Use these when the two
 #' sides should borrow different amounts of source information. Supply both
@@ -236,7 +257,15 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #'
 #' At each iteration, \eqn{U} and \eqn{V} are updated by a gradient
 #' descent step, starting from the truncated SVD of the source population data.
-#' These updates are repeated until convergence.
+#' These updates are repeated until the stopping rule in \code{control} is met or
+#' \code{max_iter} updates have been made.
+#'
+#' The starting values are not recorded in \code{objective_values}, so the first
+#' change is between the first and second recorded updates. A window of 5 therefore
+#' needs at least 6 recorded updates, and if \code{max_iter} is less than
+#' \code{window + 1} the stopping rule can never be met. With the relative rule, a
+#' change from 0 to 0 counts as 0, and a change from 0 to anything else is never
+#' small.
 #'
 #' \strong{Extensions:}
 #'
@@ -267,7 +296,7 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' A list with the following elements:
 #' \item{learner_estimate}{matrix containing the LEARNER estimate of the target population knowledge graph.}
 #' \item{objective_values}{numeric vector containing the values of the objective function at each iteration.}
-#' \item{convergence_criterion}{stopping code: \code{1}, the absolute objective-change threshold was met; \code{2}, the iteration limit was reached; \code{3}, excessive objective growth or non-finite objective/factors were detected.}
+#' \item{convergence_criterion}{stopping code: \code{1}, the stopping rule in \code{control} was met; \code{2}, the iteration limit was reached; \code{3}, excessive objective growth or non-finite objective/factors were detected.}
 #' \item{r}{rank value used.}
 #'
 #' @references
@@ -333,7 +362,8 @@ learner <- function(Y_source, Y_target, r, lambda_1 = NULL, lambda_2, step_size,
 
   result <- learner_cpp(sources$matrices, Y_target, sources$weights, r,
                         lambda_1_row, lambda_1_col, lambda_2, step_size,
-                        control$max_iter, control$threshold, control$max_value)
+                        control$max_iter, control$threshold, control$max_value,
+                        control$stopping_rule == "relative", control$window)
   return(result)
 }
 

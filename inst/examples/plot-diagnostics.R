@@ -19,9 +19,7 @@ cv <- learner::cv.learner(
   lambda_1_row_all = row_grid, lambda_1_col_all = col_grid,
   lambda_2_all = balance_grid, step_size = 0.0003, n_folds = 3,
   control = list(max_iter = 500))
-learner::plot_cv(
-  cv, lambda_1_row_all = row_grid, lambda_1_col_all = col_grid,
-  lambda_2_all = balance_grid, n_observed = sum(!is.na(target)))
+learner::plot_cv(cv)
 
 fit <- learner::learner(
   sources, target, r = cv$r, source_weights = weights,
@@ -37,7 +35,6 @@ common_cv <- learner::cv.learner(
   sources, target, r = 3, source_weights = weights,
   lambda_1_all = common_grid, lambda_2_all = balance_grid,
   step_size = 0.0003, n_folds = 3, control = list(max_iter = 500))
-learner::plot_cv(common_cv, lambda_1_all = common_grid,
-                 lambda_2_all = balance_grid, n_observed = sum(!is.na(target)))
+learner::plot_cv(common_cv)
 
 # Inspect stopping codes as well as curves. Plotting does not prove convergence.

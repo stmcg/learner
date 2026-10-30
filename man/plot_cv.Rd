@@ -21,19 +21,19 @@ plot_cv(
 \arguments{
 \item{x}{A result returned by \code{cv.learner()}.}
 
-\item{lambda_1_all}{Candidate common penalties, in the same order as in
-\code{cv.learner()}. Leave as \code{NULL} when separate penalties were used.}
+\item{lambda_1_all}{Candidate common penalties. Defaults to the grid stored
+in \code{x}. Leave as \code{NULL} when separate penalties were used.}
 
-\item{lambda_2_all}{Candidate balance penalties, in the same order as in
-\code{cv.learner()}.}
+\item{lambda_2_all}{Candidate balance penalties. Defaults to the grid stored
+in \code{x}.}
 
-\item{lambda_1_row_all, lambda_1_col_all}{Candidate row and column penalties,
-in the same order as in \code{cv.learner()}. Both are needed when separate
-penalties were used.}
+\item{lambda_1_row_all, lambda_1_col_all}{Candidate row and column penalties.
+Default to the grids stored in \code{x} when separate penalties were used.}
 
-\item{n_observed}{Number of observed target entries used in CV. If given,
-the scores are shown as mean squared errors; otherwise as sums of squared
-errors. Do not count missing entries.}
+\item{n_observed}{Number of observed target entries. Defaults to the count
+stored in \code{x}, so new CV results are shown as mean squared errors.
+For older results without a stored count, supply it to obtain mean squared
+errors; otherwise the plot uses sums of squared errors.}
 
 \item{lambda_2_index}{Which balance-penalty panels to draw when separate
 penalties were used, as positions in \code{lambda_2_all}. The default draws
@@ -57,12 +57,15 @@ boundary (\code{boundary}), and the ggplot pages (\code{plot} is the first
 page and \code{plots} holds all of them).
 }
 \description{
-Compare cross-validation errors across candidate penalties. Lighter cells
-indicate lower error, and a black box marks the selected combination.
+Compare cross-validation errors across candidate penalties. Pale blue cells
+indicate lower error, darker blue cells indicate higher error, and a black
+box marks the selected combination.
 }
 \details{
-Supply the same penalty grids, in the same order, used in
-\code{cv.learner()}. With a common space penalty, the axes show that penalty
+Use \code{plot_cv(x)} for results from the current version of
+\code{cv.learner()}. For older results without stored grids, supply the
+original grids in their original order. Explicit arguments take precedence
+over stored values. With a common space penalty, the axes show that penalty
 and the balance penalty. With separate penalties, the axes show row and
 column penalties, with one panel per balance penalty and shared colors.
 
@@ -89,8 +92,7 @@ cv <- cv.learner(dat_highsim$Y_source[1:12, 1:8], target,
                  lambda_1_col_all = col_grid, lambda_2_all = balance_grid,
                  step_size = 0.0003, n_folds = 2,
                  control = list(max_iter = 20))
-plot_cv(cv, lambda_1_row_all = row_grid, lambda_1_col_all = col_grid,
-        lambda_2_all = balance_grid, n_observed = sum(!is.na(target)))
+plot_cv(cv)
 
 }
 

@@ -63,7 +63,8 @@ test_that("tied CV is the diagonal of the independent grid", {
   }
   tied <- fit(lambda_1_all = c(1, 3))
   separate <- fit(lambda_1_row_all = c(1, 3), lambda_1_col_all = c(1, 3))
-  expect_named(tied, c('lambda_1_min', 'lambda_2_min', 'mse_all', 'r'))
+  expect_named(tied, c('lambda_1_min', 'lambda_2_min', 'mse_all', 'r',
+                       'lambda_1_all', 'lambda_2_all', 'n_observed'))
   expect_equal(dim(tied$mse_all), c(2L, 2L))
   for (i in 1:2) expect_equal(tied$mse_all[i, ], separate$mse_all[i, i, ], tolerance = 1e-10)
   single <- fit(lambda_1_row_all = 1, lambda_1_col_all = 3)

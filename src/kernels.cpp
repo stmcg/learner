@@ -59,7 +59,7 @@ FitResult learner_worker(const SourceSpaces &spaces,
                          const Eigen::MatrixXd &Y_target,
                          double lambda1_row, double lambda1_col, double lambda2,
                          double step_size, int max_iter, double threshold,
-                         double max_value) {
+                         double max_value, bool relative, int window) {
   Eigen::MatrixXd U = spaces.initial_u;
   Eigen::MatrixXd V = spaces.initial_v;
   double perc_nonmissing = 1.0 - (static_cast<double>((Y_target.array().isNaN()).count()) / Y_target.size());
@@ -86,6 +86,7 @@ FitResult learner_worker(const SourceSpaces &spaces,
   int convergence_criterion = 2;
   std::vector<double> obj_values;
   obj_values.reserve(max_iter);
+  int small_changes = 0;
   for (int iter = 0; iter < max_iter; ++iter) {
     Eigen::MatrixXd U_tilde = U.transpose() * U;
     Eigen::MatrixXd V_tilde = V.transpose() * V;
@@ -141,10 +142,26 @@ FitResult learner_worker(const SourceSpaces &spaces,
       V_best = V;
     }
 
-    // Checking for convergence conditions
-    if (iter > 0 && std::abs(obj - obj_values[iter - 1]) < threshold) {
-      convergence_criterion = 1;
+    // Relative convergence must not mask excessive objective growth.
+    if (relative && iter > 0 && obj > max_value * obj_init) {
+      convergence_criterion = 3;
       break;
+    }
+    // Checking for convergence conditions
+    if (iter > 0) {
+      const double previous = obj_values[iter - 1];
+      double change = std::abs(obj - previous);
+      if (relative) {
+        // A zero-to-zero change is zero; leaving zero cannot satisfy tolerance.
+        change = previous == 0.0 ? (obj == 0.0 ? 0.0 :
+          std::numeric_limits<double>::infinity()) : change / std::abs(previous);
+      }
+      small_changes = change < threshold ? small_changes + 1 : 0;
+      // Initialization is excluded: K changes require at least K+1 records.
+      if (small_changes >= window) {
+        convergence_criterion = 1;
+        break;
+      }
     }
     if (iter > 0 && obj > max_value * obj_init) {
       convergence_criterion = 3;
@@ -160,10 +177,10 @@ FitResult learner_worker(const SourceSpaces &spaces,
 List learner_cpp(const Rcpp::List &Y_source, const Eigen::MatrixXd &Y_target,
                  const std::vector<double> &source_weights, int r,
                  double lambda1_row, double lambda1_col, double lambda2,
-                 double step_size, int max_iter, double threshold, double max_value) {
+                 double step_size, int max_iter, double threshold, double max_value, bool relative, int window) {
   SourceSpaces spaces = prepare_spaces(Y_source, source_weights, r);
   FitResult out = learner_worker(spaces, Y_target, lambda1_row, lambda1_col,
-                                 lambda2, step_size, max_iter, threshold, max_value);
+                                 lambda2, step_size, max_iter, threshold, max_value, relative, window);
   return List::create(Named("learner_estimate") = out.estimate,
                       Named("objective_values") = out.objective,
                       Named("convergence_criterion") = out.criterion,
@@ -180,7 +197,7 @@ std::vector<double> cv_learner_cpp(const Rcpp::List &Y_source,
                                   const std::vector<double> &balance_grid,
                                   double step_size, int max_iter, double threshold,
                                   int n_cores, int r, double max_value,
-                                  const std::vector<std::vector<int>> &index_set) {
+                                  const std::vector<std::vector<int>> &index_set, bool relative, int window) {
   SourceSpaces spaces = prepare_spaces(Y_source, source_weights, r);
   int p = Y_target.rows();
   int n_grid = row_grid.size();
@@ -193,7 +210,7 @@ std::vector<double> cv_learner_cpp(const Rcpp::List &Y_source,
       Eigen::MatrixXd training = Y_target;
       for (int idx : fold) training(idx % p, idx / p) = std::numeric_limits<double>::quiet_NaN();
       FitResult fit = learner_worker(spaces, training, row_grid[g], col_grid[g],
-                                      balance_grid[g], step_size, max_iter, threshold, max_value);
+                                      balance_grid[g], step_size, max_iter, threshold, max_value, relative, window);
       if (!fit.estimate.allFinite() ||
           !std::all_of(fit.objective.begin(), fit.objective.end(),
                        [](double x) { return std::isfinite(x); })) {
