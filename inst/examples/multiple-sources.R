@@ -32,7 +32,7 @@ fit <- learner::learner(
 )
 print(fit$learner_estimate[1:5, 1:5])
 print(fit$convergence_criterion)
-# 1: objective-change threshold; 2: iteration limit; 3: excessive growth/breakdown.
+# 1: stopping rule met; 2: iteration limit; 3: excessive growth or non-finite values.
 # This example demonstrates the workflow, not scientific performance or convergence.
 
 # D-LEARNER also accepts multiple sources with the same weights.

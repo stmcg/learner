@@ -88,20 +88,21 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
 
 #' Plot the LEARNER cross-validation scores
 #'
-#' Compare cross-validation errors across candidate penalties. Lighter cells
-#' indicate lower error, and a black box marks the selected combination.
+#' Compare cross-validation errors across candidate penalties. Pale blue cells
+#' indicate lower error, darker blue cells indicate higher error, and a black
+#' box marks the selected combination.
 #'
 #' @param x A result returned by \code{cv.learner()}.
-#' @param lambda_1_all Candidate common penalties, in the same order as in
-#' \code{cv.learner()}. Leave as \code{NULL} when separate penalties were used.
-#' @param lambda_2_all Candidate balance penalties, in the same order as in
-#' \code{cv.learner()}.
-#' @param lambda_1_row_all,lambda_1_col_all Candidate row and column penalties,
-#' in the same order as in \code{cv.learner()}. Both are needed when separate
-#' penalties were used.
-#' @param n_observed Number of observed target entries used in CV. If given,
-#' the scores are shown as mean squared errors; otherwise as sums of squared
-#' errors. Do not count missing entries.
+#' @param lambda_1_all Candidate common penalties. Defaults to the grid stored
+#' in \code{x}. Leave as \code{NULL} when separate penalties were used.
+#' @param lambda_2_all Candidate balance penalties. Defaults to the grid stored
+#' in \code{x}.
+#' @param lambda_1_row_all,lambda_1_col_all Candidate row and column penalties.
+#' Default to the grids stored in \code{x} when separate penalties were used.
+#' @param n_observed Number of observed target entries. Defaults to the count
+#' stored in \code{x}, so new CV results are shown as mean squared errors.
+#' For older results without a stored count, supply it to obtain mean squared
+#' errors; otherwise the plot uses sums of squared errors.
 #' @param lambda_2_index Which balance-penalty panels to draw when separate
 #' penalties were used, as positions in \code{lambda_2_all}. The default draws
 #' all of them.
@@ -118,8 +119,10 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
 #' boundary (\code{boundary}), and the ggplot pages (\code{plot} is the first
 #' page and \code{plots} holds all of them).
 #'
-#' @details Supply the same penalty grids, in the same order, used in
-#' \code{cv.learner()}. With a common space penalty, the axes show that penalty
+#' @details Use \code{plot_cv(x)} for results from the current version of
+#' \code{cv.learner()}. For older results without stored grids, supply the
+#' original grids in their original order. Explicit arguments take precedence
+#' over stored values. With a common space penalty, the axes show that penalty
 #' and the balance penalty. With separate penalties, the axes show row and
 #' column penalties, with one panel per balance penalty and shared colors.
 #'
@@ -146,8 +149,7 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
 #'                  lambda_1_col_all = col_grid, lambda_2_all = balance_grid,
 #'                  step_size = 0.0003, n_folds = 2,
 #'                  control = list(max_iter = 20))
-#' plot_cv(cv, lambda_1_row_all = row_grid, lambda_1_col_all = col_grid,
-#'         lambda_2_all = balance_grid, n_observed = sum(!is.na(target)))
+#' plot_cv(cv)
 #'
 #' }
 #'
@@ -217,7 +219,7 @@ plot_cv <- function(x, lambda_1_all = NULL, lambda_2_all = NULL,
     xlab <- bquote(log[10](.(xlab[[1]])))
     ylab <- bquote(log[10](.(ylab[[1]])))
   }
-  metric <- if (is.null(n_observed)) 'SSE' else 'MSE'
+  metric <- if (d$scale == 'Validation MSE') 'MSE' else 'SSE'
   selected_values <- vapply(seq_along(d$grids), function(i) d$grids[[i]][d$best_index[i]], numeric(1))
   selected_names <- if (separate) c('row', 'col', 'balance') else c('lambda1', 'lambda2')
   subtitle <- paste0('Selected ', paste(paste0(selected_names, ' = ',
@@ -250,7 +252,7 @@ plot_cv <- function(x, lambda_1_all = NULL, lambda_2_all = NULL,
     panel_labels <- stats::setNames(facet_labels, as.character(page))
     plot <- ggplot2::ggplot(data, ggplot2::aes(x = x_index, y = y_index, fill = fill_value)) +
       ggplot2::geom_tile(color = 'white', linewidth = 0.35, width = 1, height = 1) +
-      ggplot2::scale_fill_viridis_c(option = 'magma', direction = -1,
+      ggplot2::scale_fill_gradient(low = '#EFF3FF', high = '#08519C',
           na.value = 'grey85', limits = limits, breaks = breaks, labels = key_labels,
           name = if (relative) paste0('CV ', metric, '\nabove minimum') else paste('CV', metric)) +
       ggplot2::scale_x_continuous(breaks = seq_along(labels_x), labels = labels_x,
@@ -297,6 +299,12 @@ prepare_cv_plot <- function(x, lambda_1_all = NULL, lambda_2_all = NULL,
   if (!is.logical(log_labels) || length(log_labels) != 1L || is.na(log_labels)) {
     stop('log_labels must be TRUE or FALSE.')
   }
+  # Explicit arguments override metadata; older CV objects remain supported.
+  if (is.null(lambda_1_all)) lambda_1_all <- x[['lambda_1_all']]
+  if (is.null(lambda_2_all)) lambda_2_all <- x[['lambda_2_all']]
+  if (is.null(lambda_1_row_all)) lambda_1_row_all <- x[['lambda_1_row_all']]
+  if (is.null(lambda_1_col_all)) lambda_1_col_all <- x[['lambda_1_col_all']]
+  if (is.null(n_observed)) n_observed <- x[['n_observed']]
   scores <- x$mse_all
   finite <- is.finite(scores)
   if (!any(finite)) stop('No finite validation scores are available to plot.')

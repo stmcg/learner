@@ -38,13 +38,26 @@ Use \code{\link{cv.learner}} to select penalty values.}
 \item{step_size}{Step size in the optimization algorithm. Smaller values may
 reduce oscillation but require more iterations.}
 
-\item{control}{List of settings controlling when optimization stops:
+\item{control}{List of settings that decide when the fit stops. All are optional.
 \describe{
-\item{\code{max_iter}}{Maximum number of updates; default \code{100}.}
-\item{\code{threshold}}{Stop when the absolute change between consecutive
-objective values is smaller than this value; default \code{0.001}.}
-\item{\code{max_value}}{Stop if the objective grows beyond this multiple of
-its preceding value; default \code{10}.}}}
+\item{\code{max_iter}}{Maximum number of updates. Default \code{100}. This is
+small: on the example data, a stopping rule was met only after several hundred
+updates or more, so a larger value such as \code{1e4} is often needed. The fit
+still stops early once the rule is met.}
+\item{\code{stopping_rule}}{How a change in the objective is measured.
+\code{"absolute"} (the default) uses \code{abs(L_t - L_{t-1})}.
+\code{"relative"} uses \code{abs(L_t - L_{t-1}) / abs(L_{t-1})}, where
+\code{L_t} is the objective after update \code{t}.}
+\item{\code{window}}{Number of changes in a row that must be small before the
+fit stops. Default \code{1} for \code{"absolute"} and \code{5} for \code{"relative"}.
+Can also be written \code{k}. Giving both \code{window} and \code{k} is an error.}
+\item{\code{threshold}}{A change is small if it is strictly less than this value.
+Default \code{0.001} for \code{"absolute"} and \code{1e-6} for \code{"relative"}.
+With \code{0}, no change is ever small, so the fit runs until \code{max_iter}
+unless it stops with code 3. Can also be written \code{epsilon}. Giving both
+\code{threshold} and \code{epsilon} is an error.}
+\item{\code{max_value}}{Stop with code 3 if the objective becomes more than this
+many times its previous value. Default \code{10}.}}}
 
 \item{lambda_1_row, lambda_1_col}{Separate source-space penalties for the row
 factor \eqn{U} and column factor \eqn{V}, respectively. Use these when the two
@@ -58,7 +71,7 @@ instead of \code{lambda_1}; equal values reproduce the common penalty.}
 A list with the following elements:
 \item{learner_estimate}{matrix containing the LEARNER estimate of the target population knowledge graph.}
 \item{objective_values}{numeric vector containing the values of the objective function at each iteration.}
-\item{convergence_criterion}{stopping code: \code{1}, the absolute objective-change threshold was met; \code{2}, the iteration limit was reached; \code{3}, excessive objective growth or non-finite objective/factors were detected.}
+\item{convergence_criterion}{stopping code: \code{1}, the stopping rule in \code{control} was met; \code{2}, the iteration limit was reached; \code{3}, excessive objective growth or non-finite objective/factors were detected.}
 \item{r}{rank value used.}
 }
 \description{
@@ -100,7 +113,15 @@ terms are unchanged. The same adjustment applies to the extensions below.
 
 At each iteration, \eqn{U} and \eqn{V} are updated by a gradient
 descent step, starting from the truncated SVD of the source population data.
-These updates are repeated until convergence.
+These updates are repeated until the stopping rule in \code{control} is met or
+\code{max_iter} updates have been made.
+
+The starting values are not recorded in \code{objective_values}, so the first
+change is between the first and second recorded updates. A window of 5 therefore
+needs at least 6 recorded updates, and if \code{max_iter} is less than
+\code{window + 1} the stopping rule can never be met. With the relative rule, a
+change from 0 to 0 counts as 0, and a change from 0 to anything else is never
+small.
 
 \strong{Extensions:}
 

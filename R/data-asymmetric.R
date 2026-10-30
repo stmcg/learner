@@ -1,8 +1,8 @@
 #' Simulated data set: One shared latent space
 #'
 #' One source and one target with the same true U-space but different true
-#' V-spaces. This example illustrates why the two space penalties in LEARNER
-#' can be selected separately.
+#' V-spaces. This example illustrates how to fit LEARNER
+#' with separate penalties on the two spaces.
 #'
 #' @docType data
 #' @format A list of four aligned matrices, each with 100 rows and 50 columns:
@@ -36,17 +36,13 @@
 #' @examples
 #' data(dat_asymmetric)
 #' d <- dat_asymmetric
-#' error <- function(fit) norm(fit$learner_estimate - d$Theta_target, "F")
-#' # Equal penalties versus stronger borrowing on the shared U side. The values
-#' # are illustrative and were not selected by cross-validation; see
-#' # vignette("advanced-learner") for selecting them.
-#' common <- learner(d$Y_source, d$Y_target, r = 3, lambda_1 = 10,
-#'                   lambda_2 = 0.1, step_size = 0.003,
-#'                   control = list(max_iter = 2000))
-#' separate <- learner(d$Y_source, d$Y_target, r = 3, lambda_1_row = 100,
-#'                     lambda_1_col = 10, lambda_2 = 0.1, step_size = 0.003,
-#'                     control = list(max_iter = 2000))
-#' c(common = error(common), separate = error(separate))
+#' # Demonstration penalties; use cv.learner() to select them from data.
+#' fit <- learner(d$Y_source, d$Y_target, r = 3, lambda_1_row = 100,
+#'                lambda_1_col = 10, lambda_2 = 0.1, step_size = 0.003,
+#'                control = list(max_iter = 2000))
+#' dim(fit$learner_estimate)
+#' fit$convergence_criterion
+#' # See vignette("advanced-learner") for cross-validation and diagnostics.
 #' @seealso \code{\link{dat_highsim}}, \code{\link{dat_multisource}},
 #'   \code{\link{learner}}, \code{\link{cv.learner}}
 #' @keywords datasets
