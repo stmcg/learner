@@ -1,0 +1,46 @@
+<style>
+pre.sourceCode { position: relative; padding-top: 2.4em; }
+code span { font-weight: normal !important; }
+.copy-code { user-select:none; -webkit-user-select:none; position:absolute; top:5px; right:7px; padding:3px 9px; border:1px solid #b8c4d0; border-radius:4px; background:white; color:#174d79; cursor:pointer; font:12px system-ui; }
+.copy-code:focus-visible { outline:2px solid #174d79; }
+</style>
+<script>
+(function () {
+  function init() {
+    document.querySelectorAll('pre.sourceCode').forEach(function (pre) {
+      var code = pre.querySelector('code');
+      if (!code) return;
+      var button = document.createElement('button');
+      button.type = 'button'; button.className = 'copy-code';
+      button.textContent = 'Copy'; button.setAttribute('aria-label', 'Copy R code');
+      button.addEventListener('click', async function () {
+        var text = code.textContent.split('\n').filter(function (line) {
+          return !/^\s*#>/.test(line);
+        }).join('\n') + '\n';
+        try {
+          if (!navigator.clipboard || !window.isSecureContext) throw new Error('fallback');
+          await navigator.clipboard.writeText(text);
+          button.textContent = 'Copied!';
+        } catch (error) {
+          var area = document.createElement('textarea');
+          area.value = text; area.style.position = 'fixed'; area.style.opacity = '0';
+          document.body.appendChild(area); area.select();
+          var ok = false;
+          try { ok = document.execCommand('copy'); } catch (copyError) {}
+          area.remove(); button.focus();
+          if (!ok) {
+            var range = document.createRange(); range.selectNodeContents(code);
+            var selection = window.getSelection();
+            selection.removeAllRanges(); selection.addRange(range);
+          }
+          button.textContent = ok ? 'Copied!' : 'Code selected: press Ctrl/Cmd+C';
+        }
+        setTimeout(function () { button.textContent = 'Copy'; }, 2500);
+      });
+      pre.appendChild(button);
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
