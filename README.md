@@ -86,14 +86,13 @@ res_cv.learner$lambda_2_min
 ```
 
 The heatmap shows the cross-validation error for each candidate
-combination. Lighter cells indicate lower error; the black box marks the
-selected combination. This plot requires the optional package `ggplot2`
-(version 3.4.0 or later).
+combination. Pale blue cells indicate lower error and dark blue cells
+indicate higher error; the black box marks the selected combination.
+This plot requires the optional package `ggplot2` (version 3.4.0 or
+later).
 
 ``` r
-plot_cv(res_cv.learner, lambda_1_all = c(1, 10, 100),
-        lambda_2_all = c(1, 10, 100),
-        n_observed = sum(!is.na(dat_highsim$Y_target)))
+plot_cv(res_cv.learner)
 ```
 
 <img src="README_files/figure-gfm/cv-heatmap-1.png" alt="" width="100%" />

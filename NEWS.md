@@ -1,5 +1,17 @@
 ### learner version 1.1.0 (unreleased)
 
+* Add an optional relative stopping rule to `learner()` and `cv.learner()`. Use
+  `control = list(stopping_rule = "relative")` to stop once the relative change in
+  the objective stays below `threshold` (default `1e-6`) for `window` updates in a
+  row (default 5). The default rule is unchanged. `window` also works with the
+  default absolute rule. `k` and `epsilon` are accepted as other names for
+  `window` and `threshold`. Giving both names for the same setting is an error.
+
+* Store candidate grids and observed-entry counts in CV results so that
+  `plot_cv()` can use them automatically; retain explicit arguments for older results.
+* Use a sequential blue scale for CV heatmaps.
+* Reorganize the advanced tutorial around usage and show compact diagnostic outputs.
+
 * Add support for multiple source populations and optional source weights in
   `learner()`, `dlearner()`, and `cv.learner()`.
 * Add `dat_multisource`, an example dataset with one target and two source

@@ -63,6 +63,11 @@ For common penalties, rows correspond to \code{lambda_1_all} and columns to
 to the row, column, and balance grids, in that order. Divide by the number
 of observed target entries to obtain mean squared errors.}
 \item{r}{Rank used in the fits.}
+\item{lambda_1_all, lambda_2_all, lambda_1_row_all, lambda_1_col_all}{The
+candidate grids in their original order. Only grids used in the search are
+returned. \code{\link{plot_cv}} reads these automatically.}
+\item{n_observed}{Number of observed target entries, used to convert the
+summed validation errors to mean squared errors when plotting.}
 }
 \description{
 Performs k-fold cross-validation to select the source-space and balance

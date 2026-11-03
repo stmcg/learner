@@ -38,8 +38,10 @@ for (case_name in c('complete', 'missing')) {
     case <- fixture$cv[[case_name]]
     actual <- with_reference_rng(case$seed, fixture$provenance$rng_kind,
                                   do.call(cv.learner, case$args))
+    # Compare historical numerical fields; new plotting metadata is tested separately.
     # Includes all eight scores and the selected penalties, not only dimensions.
-    expect_equal(actual, case$expected, tolerance = fixture$provenance$tolerance)
+    expect_equal(actual[names(case$expected)], case$expected,
+                 tolerance = fixture$provenance$tolerance)
   })
 }
 

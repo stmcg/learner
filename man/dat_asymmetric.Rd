@@ -18,8 +18,8 @@ dat_asymmetric
 }
 \description{
 One source and one target with the same true U-space but different true
-V-spaces. This example illustrates why the two space penalties in LEARNER
-can be selected separately.
+V-spaces. This example illustrates how to fit LEARNER
+with separate penalties on the two spaces.
 }
 \details{
 The target signal is the rank-3 truncated SVD of a standard normal
@@ -43,17 +43,13 @@ in the source repository.
 \examples{
 data(dat_asymmetric)
 d <- dat_asymmetric
-error <- function(fit) norm(fit$learner_estimate - d$Theta_target, "F")
-# Equal penalties versus stronger borrowing on the shared U side. The values
-# are illustrative and were not selected by cross-validation; see
-# vignette("advanced-learner") for selecting them.
-common <- learner(d$Y_source, d$Y_target, r = 3, lambda_1 = 10,
-                  lambda_2 = 0.1, step_size = 0.003,
-                  control = list(max_iter = 2000))
-separate <- learner(d$Y_source, d$Y_target, r = 3, lambda_1_row = 100,
-                    lambda_1_col = 10, lambda_2 = 0.1, step_size = 0.003,
-                    control = list(max_iter = 2000))
-c(common = error(common), separate = error(separate))
+# Demonstration penalties; use cv.learner() to select them from data.
+fit <- learner(d$Y_source, d$Y_target, r = 3, lambda_1_row = 100,
+               lambda_1_col = 10, lambda_2 = 0.1, step_size = 0.003,
+               control = list(max_iter = 2000))
+dim(fit$learner_estimate)
+fit$convergence_criterion
+# See vignette("advanced-learner") for cross-validation and diagnostics.
 }
 \references{
 McGrath, S., Zhu, C., O'Dea, R., Guo, M. and Duan, R. (2026). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. Statistics in Medicine, 45(15-17), e70669. \doi{10.1002/sim.70669}.

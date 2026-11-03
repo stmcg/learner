@@ -60,17 +60,47 @@ validate_count <- function(value, name, lower = 1, upper = .Machine$integer.max)
   }
 }
 
+# k and epsilon are accepted as other names for window and threshold. Only one
+# name may be given for each setting. The value is stored under the main name, and
+# the label tells the validators which name the user actually wrote.
+use_control_alias <- function(control, name, alias) {
+  label <- paste0('control$', name)
+  alias_value <- control[[alias]]
+  if (is.null(alias_value)) return(list(control = control, label = label))
+  if (!is.null(control[[name, exact = FALSE]])) {
+    stop('Give control$', name, ' or control$', alias, ', not both.', call. = FALSE)
+  }
+  control[[name]] <- alias_value
+  control[[alias]] <- NULL
+  list(control = control, label = paste0('control$', alias))
+}
+
 prepare_control <- function(control, step_size) {
   if (!is.list(control)) stop('control must be a list.')
   if (!is.numeric(step_size) || length(step_size) != 1L ||
       !is.finite(step_size) || step_size <= 0) {
     stop('step_size must be a finite positive number.')
   }
+  window_alias <- use_control_alias(control, 'window', 'k')
+  control <- window_alias$control
+  threshold_alias <- use_control_alias(control, 'threshold', 'epsilon')
+  control <- threshold_alias$control
   if (is.null(control$max_iter)) control$max_iter <- 100L
-  if (is.null(control$threshold)) control$threshold <- 0.001
+  if (is.null(control$stopping_rule)) control$stopping_rule <- 'absolute'
+  if (!is.character(control$stopping_rule) || length(control$stopping_rule) != 1L ||
+      is.na(control$stopping_rule) || !control$stopping_rule %in% c('absolute', 'relative')) {
+    stop("control$stopping_rule must be 'absolute' or 'relative'.")
+  }
+  if (is.null(control$window)) {
+    control$window <- if (control$stopping_rule == 'relative') 5L else 1L
+  }
+  validate_count(control$window, window_alias$label)
+  if (is.null(control$threshold)) {
+    control$threshold <- if (control$stopping_rule == 'relative') 1e-6 else 0.001
+  }
   if (is.null(control$max_value)) control$max_value <- 10
   validate_count(control$max_iter, 'control$max_iter')
-  validate_space_penalty(control$threshold, 'control$threshold')
+  validate_space_penalty(control$threshold, threshold_alias$label)
   if (!is.numeric(control$max_value) || length(control$max_value) != 1L ||
       !is.finite(control$max_value) || control$max_value <= 0) {
     stop('control$max_value must be a finite positive number.')
