@@ -33,6 +33,9 @@ Initialization is not included in this history. A curve that zigzags between
 two levels means that the objective alternates from one iteration to the next
 instead of settling; a flat-looking curve alone does not establish
 convergence.
+
+The plot is drawn with the current graphics margins, so very small margins
+can cut off the title and axis labels.
 }
 \examples{
 fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,

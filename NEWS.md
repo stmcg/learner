@@ -1,5 +1,10 @@
 ### learner version 1.1.0 (unreleased)
 
+* Fix blank CV heatmaps in RStudio when followed by `plot_objective()` by
+  avoiding explicit graphics-parameter changes in the objective plot. The plot
+  now uses the current margins, so very small margins can cut off the title and
+  axis labels.
+
 * Add an optional relative stopping rule to `learner()` and `cv.learner()`. Use
   `control = list(stopping_rule = "relative")` to stop once the relative change in
   the objective stays below `threshold` (default `1e-6`) for `window` updates in a
