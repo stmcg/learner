@@ -22,6 +22,9 @@
 #' instead of settling; a flat-looking curve alone does not establish
 #' convergence.
 #'
+#' The plot is drawn with the current graphics margins, so very small margins
+#' can cut off the title and axis labels.
+#'
 #' @examples
 #' fit <- learner(dat_highsim$Y_source, dat_highsim$Y_target,
 #'                r = 3, lambda_1 = 1, lambda_2 = 1, step_size = 0.003,
@@ -65,8 +68,7 @@ plot_objective <- function(x, iterations = "all", main = NULL) {
   }
   values <- replace(objective[shown], !finite[shown], NA_real_)
 
-  old <- graphics::par(mar = c(5, 4.5, 4, 1.5))
-  on.exit(graphics::par(old), add = TRUE)
+  # Use the current margins without recording explicit par() changes.
   xlim <- range(shown)
   graphics::plot(shown, values, type = 'n', xlim = xlim, xlab = 'Iteration',
                  ylab = 'Objective value', bty = 'l')

@@ -43,8 +43,9 @@
 #'
 #' To obtain the final estimate, apply \code{\link{learner}} with the selected
 #' penalties to the full data (see Examples). Fits that reach the iteration
-#' limit still contribute to the held out error, so check the settings in
-#' \code{control} before interpreting the selection.
+#' limit still contribute to the held out error. Inspect \code{cv_diagnostics}
+#' before interpreting the selection; a successful final fit does not imply
+#' that all CV fits met the stopping rule.
 #'
 #' @return
 #' A list containing:
@@ -62,6 +63,17 @@
 #' \item{lambda_1_all, lambda_2_all, lambda_1_row_all, lambda_1_col_all}{The
 #' candidate grids in their original order. Only grids used in the search are
 #' returned. \code{\link{plot_cv}} reads these automatically.}
+#' \item{cv_diagnostics}{Data frame with one row per candidate and fold, containing
+#' \code{candidate}, \code{fold}, \code{lambda_1_row}, \code{lambda_1_col},
+#' \code{lambda_2}, \code{updates}, \code{stop_code}, and \code{selected}.
+#' Candidate indices follow the order of \code{as.vector(mse_all)}; rows are
+#' ordered by candidate, then fold. Common penalties appear in both space columns.
+#' Stopping codes have the same meaning as in \code{\link{learner}}:
+#' 1, the stopping rule was met; 2, the iteration limit was reached;
+#' 3, excessive growth or non-finite values were detected. Updates count recorded
+#' objective values. If a candidate fails with non-finite values, its remaining
+#' folds are skipped and have \code{NA} for updates and stopping codes.
+#' These diagnostics are saved during CV; no additional fits are performed.}
 #' \item{n_observed}{Number of observed target entries, used to convert the
 #' summed validation errors to mean squared errors when plotting.}
 #'
@@ -153,26 +165,34 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
     index_set[[fold]] <- indices[seq.int(start, end)]
   }
 
-  scores <- cv_learner_cpp(sources$matrices, Y_target, sources$weights,
+  cv_result <- cv_learner_cpp(sources$matrices, Y_target, sources$weights,
                            grid$row, grid$col, grid$balance, step_size,
                            control$max_iter, control$threshold, n_cores, r,
                            control$max_value, index_set, control$stopping_rule == "relative", control$window)
+  scores <- cv_result$scores
   if (!any(is.finite(scores))) stop('No candidate produced finite validation errors.')
   if (any(!is.finite(scores))) warning('Some candidates produced non-finite validation errors and were excluded.')
   scores[!is.finite(scores)] <- Inf
   best <- which.min(scores)
   # Keep the historical mse_all scale: summed held-out squared errors.
   mse_all <- array(scores, dim = grid_dim)
+  candidate <- rep(seq_len(nrow(grid)), each = n_folds)
+  cv_diagnostics <- data.frame(
+    candidate = candidate, fold = rep(seq_len(n_folds), times = nrow(grid)),
+    lambda_1_row = grid$row[candidate], lambda_1_col = grid$col[candidate],
+    lambda_2 = grid$balance[candidate], updates = cv_result$updates,
+    stop_code = cv_result$stop_code, selected = candidate == best)
   if (!separate) {
     return(list(lambda_1_min = grid$row[best], lambda_2_min = grid$balance[best],
                 mse_all = mse_all, r = r, lambda_1_all = lambda_1_all,
-                lambda_2_all = lambda_2_all, n_observed = n_indices))
+                lambda_2_all = lambda_2_all, n_observed = n_indices,
+                cv_diagnostics = cv_diagnostics))
   }
   list(lambda_1_min = NA_real_, lambda_2_min = grid$balance[best],
        lambda_1_row_min = grid$row[best], lambda_1_col_min = grid$col[best],
        mse_all = mse_all, r = r, lambda_1_row_all = lambda_1_row_all,
        lambda_1_col_all = lambda_1_col_all, lambda_2_all = lambda_2_all,
-       n_observed = n_indices)
+       n_observed = n_indices, cv_diagnostics = cv_diagnostics)
 }
 
 #' Latent space-based transfer learning

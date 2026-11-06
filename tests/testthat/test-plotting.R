@@ -74,6 +74,23 @@ test_that('near-optimum plots handle alternating and missing values and keep gra
   expect_equal(graphics::par('mar'), old)
 })
 
+test_that('objective plots make no par() calls and leave device settings alone', {
+  # Check explicit parameter changes separately from mixed grid/base replay.
+  path <- plot_device()
+  on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
+  grDevices::dev.control('enable')
+  settings <- graphics::par(c('mar', 'new'))
+  plot_objective(list(objective_values = c(5, 4, 3)))
+  recorded <- vapply(grDevices::recordPlot()[[1]], function(step) {
+    symbol <- step[[2]][[1]]
+    if (is.list(symbol) && is.character(symbol$name)) symbol$name else NA_character_
+  }, character(1))
+  # The structure of a recorded plot is internal to R; skip if it looks different.
+  skip_if(length(recorded) == 0L || anyNA(recorded))
+  expect_false('C_par' %in% recorded)
+  expect_equal(graphics::par(c('mar', 'new')), settings)
+})
+
 test_that('objective plots handle flat, singleton, and non-finite histories', {
   path <- plot_device()
   on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
@@ -225,4 +242,27 @@ test_that('objective plots reject ranges with no finite values before drawing', 
   expect_equal(graphics::par(c('mar', 'usr')), old)
   expect_equal(plot_objective(fit, iterations = 2:5)$objective,
                fit$objective_values[2:5])
+})
+
+
+test_that('switching from a CV heatmap to an objective plot preserves the heatmap record', {
+  skip_if_not_installed('ggplot2', minimum_version = '3.4.0')
+  path <- plot_device()
+  on.exit({grDevices::dev.off(); unlink(path)}, add = TRUE)
+  grDevices::dev.control('enable')
+  cv <- list(mse_all = matrix(c(4, 3, 2, 1), 2),
+             lambda_1_all = c(0, 1), lambda_2_all = c(.1, 1),
+             lambda_1_min = 1, lambda_2_min = 1, n_observed = 10)
+  plot_cv(cv)
+  plot_cv(cv)
+  before <- grDevices::recordPlot()
+  saved <- NULL
+  old_hooks <- getHook('before.plot.new')
+  on.exit(setHook('before.plot.new', old_hooks, 'replace'), add = TRUE)
+  setHook('before.plot.new', function(...) {
+    if (is.null(saved)) saved <<- grDevices::recordPlot()
+  }, 'append')
+  plot_objective(list(objective_values = c(5, 4, 3)))
+  expect_identical(saved, before)
+  expect_no_error(grDevices::replayPlot(saved))
 })

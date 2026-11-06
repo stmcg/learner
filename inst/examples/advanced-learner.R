@@ -37,7 +37,8 @@ compatible <- local({
   target <- diag(c(4, 0, 0))
   cv <- cv.learner(y, target, r = 1, lambda_1_all = 1, lambda_2_all = 1,
                    step_size = 0.001, n_folds = 2, control = list(max_iter = 2))
-  all(c("lambda_1_all", "lambda_2_all", "n_observed") %in% names(cv))
+  all(c("lambda_1_all", "lambda_2_all", "n_observed",
+        "cv_diagnostics") %in% names(cv))
 })
 if (!compatible) {
   stop(paste("This learner installation lacks the CV metadata used here.",
@@ -105,10 +106,10 @@ fit_multi$convergence_criterion
 
 # grid-boundaries
 needed <- c("asym", "asym_space_grid", "asym_balance_grid",
-            "cv_separate", "fit_separate")
+            "cv_separate", "fit_separate", "cv_multi")
 if (!all(vapply(needed, exists, logical(1), inherits = TRUE))) {
-  stop("Run Section 2 through the final refit before starting Section 4.",
-       call. = FALSE)
+  stop("Run Section 2 through the final refit, and the cross-validation in ",
+       "Section 3, before starting Section 4.", call. = FALSE)
 }
 selected <- c(U = cv_separate$lambda_1_row_min,
               V = cv_separate$lambda_1_col_min,
@@ -155,22 +156,11 @@ sensitivity <- rbind(
 print(sensitivity, row.names = FALSE)
 
 # inner-cv-stopping
-set.seed(815)
-indices <- sample(which(!is.na(asym$Y_target)))
-n <- length(indices)
-folds <- lapply(1:3, function(k) {
-  indices[seq.int(floor((k - 1) * n / 3) + 1, floor(k * n / 3))]
-})
-inner_fits <- do.call(rbind, lapply(1:3, function(k) {
-  training <- asym$Y_target
-  training[folds[[k]]] <- NA
-  fit <- learner(
-    asym$Y_source, training, r = cv_separate$r,
-    lambda_1_row = cv_separate$lambda_1_row_min,
-    lambda_1_col = cv_separate$lambda_1_col_min,
-    lambda_2 = cv_separate$lambda_2_min,
-    step_size = 0.003, control = list(max_iter = 2000))
-  data.frame(fold = k, updates = length(fit$objective_values),
-             stop_code = fit$convergence_criterion)
-}))
+inner_fits <- subset(cv_separate$cv_diagnostics, selected,
+                     select = c(fold, updates, stop_code))
 print(inner_fits, row.names = FALSE)
+
+# multiple-cv-stopping
+with(cv_multi$cv_diagnostics, table(stop_code, useNA = "ifany"))
+subset(cv_multi$cv_diagnostics, selected,
+       select = c(fold, updates, stop_code))

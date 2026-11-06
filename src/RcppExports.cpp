@@ -35,7 +35,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // cv_learner_cpp
-std::vector<double> cv_learner_cpp(const Rcpp::List& Y_source, const Eigen::MatrixXd& Y_target, const std::vector<double>& source_weights, const std::vector<double>& row_grid, const std::vector<double>& col_grid, const std::vector<double>& balance_grid, double step_size, int max_iter, double threshold, int n_cores, int r, double max_value, const std::vector<std::vector<int>>& index_set, bool relative, int window);
+List cv_learner_cpp(const Rcpp::List& Y_source, const Eigen::MatrixXd& Y_target, const std::vector<double>& source_weights, const std::vector<double>& row_grid, const std::vector<double>& col_grid, const std::vector<double>& balance_grid, double step_size, int max_iter, double threshold, int n_cores, int r, double max_value, const std::vector<std::vector<int>>& index_set, bool relative, int window);
 RcppExport SEXP _learner_cv_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP source_weightsSEXP, SEXP row_gridSEXP, SEXP col_gridSEXP, SEXP balance_gridSEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP, SEXP n_coresSEXP, SEXP rSEXP, SEXP max_valueSEXP, SEXP index_setSEXP, SEXP relativeSEXP, SEXP windowSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
