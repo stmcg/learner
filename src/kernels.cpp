@@ -189,28 +189,35 @@ List learner_cpp(const Rcpp::List &Y_source, const Eigen::MatrixXd &Y_target,
 
 // All three vectors contain one entry per candidate combination, in R array order.
 // [[Rcpp::export]]
-std::vector<double> cv_learner_cpp(const Rcpp::List &Y_source,
-                                  const Eigen::MatrixXd &Y_target,
-                                  const std::vector<double> &source_weights,
-                                  const std::vector<double> &row_grid,
-                                  const std::vector<double> &col_grid,
-                                  const std::vector<double> &balance_grid,
-                                  double step_size, int max_iter, double threshold,
-                                  int n_cores, int r, double max_value,
-                                  const std::vector<std::vector<int>> &index_set, bool relative, int window) {
+List cv_learner_cpp(const Rcpp::List &Y_source,
+                    const Eigen::MatrixXd &Y_target,
+                    const std::vector<double> &source_weights,
+                    const std::vector<double> &row_grid,
+                    const std::vector<double> &col_grid,
+                    const std::vector<double> &balance_grid,
+                    double step_size, int max_iter, double threshold,
+                    int n_cores, int r, double max_value,
+                    const std::vector<std::vector<int>> &index_set, bool relative, int window) {
   SourceSpaces spaces = prepare_spaces(Y_source, source_weights, r);
   int p = Y_target.rows();
   int n_grid = row_grid.size();
   std::vector<double> scores(n_grid, 0.0);
+  const int n_folds = index_set.size();
+  std::vector<int> stopping_codes(n_grid * n_folds, NA_INTEGER);
+  std::vector<int> updates(n_grid * n_folds, NA_INTEGER);
 
 #pragma omp parallel for schedule(dynamic) num_threads(n_cores)
   for (int g = 0; g < n_grid; ++g) {
     double score = 0.0;
-    for (const auto &fold : index_set) {
+    for (int f = 0; f < n_folds; ++f) {
+      const auto &fold = index_set[f];
       Eigen::MatrixXd training = Y_target;
       for (int idx : fold) training(idx % p, idx / p) = std::numeric_limits<double>::quiet_NaN();
       FitResult fit = learner_worker(spaces, training, row_grid[g], col_grid[g],
                                       balance_grid[g], step_size, max_iter, threshold, max_value, relative, window);
+      const int diagnostic_index = g * n_folds + f;
+      stopping_codes[diagnostic_index] = fit.criterion;
+      updates[diagnostic_index] = fit.objective.size();
       if (!fit.estimate.allFinite() ||
           !std::all_of(fit.objective.begin(), fit.objective.end(),
                        [](double x) { return std::isfinite(x); })) {
@@ -226,7 +233,9 @@ std::vector<double> cv_learner_cpp(const Rcpp::List &Y_source,
     }
     scores[g] = score;
   }
-  return scores;
+  return List::create(Named("scores") = scores,
+                      Named("stop_code") = stopping_codes,
+                      Named("updates") = updates);
 }
 
 // --------------------------------------------------------------

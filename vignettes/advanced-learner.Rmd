@@ -50,7 +50,8 @@ cat('<p><a download="advanced-learner.R" href="data:text/plain;charset=utf-8,',
 ### Before you start
 
 This tutorial needs the development version of learner. Run the check below to
-load the data and confirm that your installation supports the plotting calls.
+load the data and confirm that your installation supports the plotting calls
+and the saved CV diagnostics.
 If it fails, follow the installation instructions before continuing.
 
 ```{r load-package, message=FALSE}
@@ -84,7 +85,8 @@ compatible <- local({
   target <- diag(c(4, 0, 0))
   cv <- cv.learner(y, target, r = 1, lambda_1_all = 1, lambda_2_all = 1,
                    step_size = 0.001, n_folds = 2, control = list(max_iter = 2))
-  all(c("lambda_1_all", "lambda_2_all", "n_observed") %in% names(cv))
+  all(c("lambda_1_all", "lambda_2_all", "n_observed",
+        "cv_diagnostics") %in% names(cv))
 })
 if (!compatible) {
   stop(paste("This learner installation lacks the CV metadata used here.",
@@ -364,9 +366,10 @@ both workflows; selecting weights by CV is outside this tutorial.
 
 ## 4. Diagnostics and Sensitivity Checks
 
-Run Section 2 through the final refit before starting these checks. They use
-`asym`, `asym_space_grid`, `asym_balance_grid`, `cv_separate`, and `fit_separate`
-from that section. Section 3 is not needed.
+Run Section 2 through the final refit, and the cross-validation in Section 3,
+before starting these checks. They use `asym`, `asym_space_grid`,
+`asym_balance_grid`, `cv_separate`, and `fit_separate` from Section 2, and
+`cv_multi` from Section 3.
 
 ### Check grid boundaries and similar CV scores
 
@@ -374,10 +377,10 @@ First, compare the selected penalties with the ends of their candidate grids:
 
 ```{r grid-boundaries}
 needed <- c("asym", "asym_space_grid", "asym_balance_grid",
-            "cv_separate", "fit_separate")
+            "cv_separate", "fit_separate", "cv_multi")
 if (!all(vapply(needed, exists, logical(1), inherits = TRUE))) {
-  stop("Run Section 2 through the final refit before starting Section 4.",
-       call. = FALSE)
+  stop("Run Section 2 through the final refit, and the cross-validation in ",
+       "Section 3, before starting Section 4.", call. = FALSE)
 }
 selected <- c(U = cv_separate$lambda_1_row_min,
               V = cv_separate$lambda_1_col_min,
@@ -460,38 +463,38 @@ CV MSE is close to the original value.
 
 These three settings give a useful first check. For your own data, extend the
 comparison if the selected penalties or scores change substantially. The final
-stopping codes do not tell us how every fit inside CV ended.
+stopping codes describe the refits on all observed target entries. The saved CV
+diagnostics below describe the fits used to select the penalties.
 
-### Inspect the CV fits for the selected candidate
+### Inspect the saved CV diagnostics
 
-`cv.learner()` does not return the internal stopping codes. We can inspect the
-selected candidate by recreating the three folds with the same seed and fitting
-each training set again:
+`cv.learner()` saves one row per candidate and fold in `cv_diagnostics`,
+including the penalties, number of updates, and stopping code. These records
+come from the original CV run, so no training sets need to be fitted again.
+
+First, inspect the folds for the selected separate-penalty candidate:
 
 ```{r inner-cv-stopping}
-set.seed(815)
-indices <- sample(which(!is.na(asym$Y_target)))
-n <- length(indices)
-folds <- lapply(1:3, function(k) {
-  indices[seq.int(floor((k - 1) * n / 3) + 1, floor(k * n / 3))]
-})
-inner_fits <- do.call(rbind, lapply(1:3, function(k) {
-  training <- asym$Y_target
-  training[folds[[k]]] <- NA
-  fit <- learner(
-    asym$Y_source, training, r = cv_separate$r,
-    lambda_1_row = cv_separate$lambda_1_row_min,
-    lambda_1_col = cv_separate$lambda_1_col_min,
-    lambda_2 = cv_separate$lambda_2_min,
-    step_size = 0.003, control = list(max_iter = 2000))
-  data.frame(fold = k, updates = length(fit$objective_values),
-             stop_code = fit$convergence_criterion)
-}))
+inner_fits <- subset(cv_separate$cv_diagnostics, selected,
+                     select = c(fold, updates, stop_code))
 print(inner_fits, row.names = FALSE)
 ```
 
-All three fits meet the stopping criterion here. This check covers the selected
-candidate only; checking the whole search would require repeating it for each
-combination in the grids. If any fit reaches its iteration limit, inspect its
-objective history and try a different budget or step size before relying on
-the selection.
+All three fits meet the stopping rule here: code 1. Code 2 means the iteration
+limit was reached; code 3 means excessive objective growth or non-finite values
+were detected. If a non-finite fit causes the remaining folds of a candidate to
+be skipped, their update counts and stopping codes are `NA`.
+
+We can also check the whole multiple-source search and its selected candidate:
+
+```{r multiple-cv-stopping}
+with(cv_multi$cv_diagnostics, table(stop_code, useNA = "ifany"))
+subset(cv_multi$cv_diagnostics, selected,
+       select = c(fold, updates, stop_code))
+```
+
+Four of the 18 fits reach the iteration limit, including two folds for the
+selected candidate. These codes identify fits that need closer inspection;
+they do not show whether the objective was decreasing or oscillating. Try a
+different step size or iteration limit and check whether the selection changes.
+Refit an individual training set only if you need its full objective history.

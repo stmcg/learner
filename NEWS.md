@@ -5,6 +5,9 @@
   now uses the current margins, so very small margins can cut off the title and
   axis labels.
 
+* Return per-candidate, per-fold stopping codes and update counts in
+  `cv.learner()$cv_diagnostics`, so CV checks do not require refitting.
+
 * Add an optional relative stopping rule to `learner()` and `cv.learner()`. Use
   `control = list(stopping_rule = "relative")` to stop once the relative change in
   the objective stays below `threshold` (default `1e-6`) for `window` updates in a

@@ -66,6 +66,17 @@ of observed target entries to obtain mean squared errors.}
 \item{lambda_1_all, lambda_2_all, lambda_1_row_all, lambda_1_col_all}{The
 candidate grids in their original order. Only grids used in the search are
 returned. \code{\link{plot_cv}} reads these automatically.}
+\item{cv_diagnostics}{Data frame with one row per candidate and fold, containing
+\code{candidate}, \code{fold}, \code{lambda_1_row}, \code{lambda_1_col},
+\code{lambda_2}, \code{updates}, \code{stop_code}, and \code{selected}.
+Candidate indices follow the order of \code{as.vector(mse_all)}; rows are
+ordered by candidate, then fold. Common penalties appear in both space columns.
+Stopping codes have the same meaning as in \code{\link{learner}}:
+1, the stopping rule was met; 2, the iteration limit was reached;
+3, excessive growth or non-finite values were detected. Updates count recorded
+objective values. If a candidate fails with non-finite values, its remaining
+folds are skipped and have \code{NA} for updates and stopping codes.
+These diagnostics are saved during CV; no additional fits are performed.}
 \item{n_observed}{Number of observed target entries, used to convert the
 summed validation errors to mean squared errors when plotting.}
 }
@@ -92,8 +103,9 @@ penalties together. Both modes can be used with multiple sources. Call
 
 To obtain the final estimate, apply \code{\link{learner}} with the selected
 penalties to the full data (see Examples). Fits that reach the iteration
-limit still contribute to the held out error, so check the settings in
-\code{control} before interpreting the selection.
+limit still contribute to the held out error. Inspect \code{cv_diagnostics}
+before interpreting the selection; a successful final fit does not imply
+that all CV fits met the stopping rule.
 }
 \examples{
 res <- cv.learner(Y_source = dat_highsim$Y_source,
