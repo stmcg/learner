@@ -4,31 +4,6 @@ multi_example <- function() {
        y = matrix(rnorm(35), 7, 5))
 }
 
-# Rebuild the held-out predictions explicitly to check grid axes and masking.
-manual_cv_scores <- function(sources, target, row, col, balance, weights = NULL,
-                              seed = 92, folds = 3) {
-  set.seed(seed)
-  observed <- which(!is.na(target))
-  indices <- sample(observed, length(observed), replace = FALSE)
-  groups <- lapply(seq_len(folds), function(fold) {
-    indices[seq.int(floor((fold - 1) * length(indices) / folds) + 1,
-                    floor(fold * length(indices) / folds))]
-  })
-  scores <- array(NA_real_, c(length(row), length(col), length(balance)))
-  for (i in seq_along(row)) for (j in seq_along(col)) for (k in seq_along(balance)) {
-    scores[i, j, k] <- sum(vapply(groups, function(held_out) {
-      train <- target
-      train[held_out] <- NA_real_
-      fit <- learner(sources, train, r = 2, lambda_1_row = row[i],
-                     lambda_1_col = col[j], lambda_2 = balance[k],
-                     source_weights = weights, step_size = 0.01,
-                     control = list(max_iter = 9, threshold = 0))
-      sum((fit$learner_estimate[held_out] - target[held_out])^2)
-    }, numeric(1)))
-  }
-  scores
-}
-
 test_that("independent CV axes and scores match explicit held-out predictions", {
   d <- multi_example()
   for (multi in c(FALSE, TRUE)) for (missing in c(FALSE, TRUE)) {
@@ -64,7 +39,8 @@ test_that("tied CV is the diagonal of the independent grid", {
   tied <- fit(lambda_1_all = c(1, 3))
   separate <- fit(lambda_1_row_all = c(1, 3), lambda_1_col_all = c(1, 3))
   expect_named(tied, c('lambda_1_min', 'lambda_2_min', 'mse_all', 'r',
-                       'lambda_1_all', 'lambda_2_all', 'n_observed', 'cv_diagnostics'))
+                       'lambda_1_all', 'lambda_2_all', 'n_observed', 'cv_diagnostics',
+                       'source_weights', 'fold_source_weights', 'source_weight_method'))
   expect_equal(dim(tied$mse_all), c(2L, 2L))
   for (i in 1:2) expect_equal(tied$mse_all[i, ], separate$mse_all[i, i, ], tolerance = 1e-10)
   single <- fit(lambda_1_row_all = 1, lambda_1_col_all = 3)
@@ -78,7 +54,8 @@ test_that("source representations and normalized weights are consistent", {
   fit <- function(source, weights = NULL) {
     learner(source, d$y, r = 2, lambda_1_row = 3, lambda_1_col = 0.5,
             lambda_2 = 1, step_size = 0.01, source_weights = weights,
-            control = list(max_iter = 12, threshold = 0))
+            control = list(max_iter = 12, threshold = 0))[c('learner_estimate',
+              'objective_values', 'convergence_criterion', 'r')]
   }
   expect_equal(fit(d$a), fit(list(d$a)), tolerance = 1e-12)
   expect_equal(fit(d$a), fit(list(d$a, d$a)), tolerance = 1e-10)
@@ -99,8 +76,10 @@ test_that("D-LEARNER matches weighted projectors and preserves matrix calls", {
   result <- dlearner(list(d$a, d$b), d$y, 2, c(7, 3))
   expect_equal(result$dlearner_estimate, pu %*% d$y %*% pv, tolerance = 1e-12)
   expect_equal(dlearner(d$a, d$y, 2), dlearner(list(d$a), d$y, 2), tolerance = 1e-12)
-  expect_equal(dlearner(d$a, d$y, 2), dlearner(list(d$a, d$b), d$y, 2, c(1, 0)), tolerance = 1e-12)
-  expect_equal(result, dlearner(list(d$b, d$a), d$y, 2, c(3, 7)), tolerance = 1e-12)
+  expect_equal(dlearner(d$a, d$y, 2)$dlearner_estimate,
+               dlearner(list(d$a, d$b), d$y, 2, c(1, 0))$dlearner_estimate, tolerance = 1e-12)
+  expect_equal(result$dlearner_estimate,
+               dlearner(list(d$b, d$a), d$y, 2, c(3, 7))$dlearner_estimate, tolerance = 1e-12)
 })
 
 test_that("invalid sources, weights, ranks, folds, and grids are rejected", {

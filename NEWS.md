@@ -1,4 +1,14 @@
 ### learner version 1.1.0 (unreleased)
+* Multiple-source fitting now defaults to automatic inverse subspace-distance
+  weights (Equation 3 of McGrath et al., 2026). Use `source_weights = "equal"`
+  or explicit `NULL` for historical equal weights; numeric weights still work.
+  Single-source estimates are unchanged.
+* Automatic CV weights use training entries only and are cached per fold.
+  Results return `source_weights`, `source_weight_method`, and, for CV,
+  `fold_source_weights`. Full-data weights are recomputed for the final refit.
+  Missing entries are zero-filled only for the target spectral pilot.
+
+
 
 * Fix blank CV heatmaps in RStudio when followed by `plot_objective()` by
   avoiding explicit graphics-parameter changes in the objective plot. The plot

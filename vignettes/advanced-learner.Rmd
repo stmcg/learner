@@ -267,9 +267,10 @@ weights <- c(0.7, 0.3)
 
 Supply sources as a list of matrices, with rows and columns in the same order
 as the target. The functions do not align them for you. Weights follow the list
-order and are normalized to sum to one; omitting them gives equal weights.
-Here we choose 0.7 for A and 0.3 for B as an example. CV does not select these
-weights.
+order and are normalized to sum to one. Omitting `source_weights` now uses
+automatic subspace-distance weights. Here we explicitly choose 0.7 for A and
+0.3 for B to retain the fixed-weight demonstration. CV does not change these
+supplied numeric weights. Use `"equal"` or explicit `NULL` for equal weights.
 
 ### Combine source-space information
 
@@ -362,7 +363,31 @@ fit_multi$convergence_criterion
 Multiple sources can also be combined with separate penalties: replace
 `lambda_1_all` in the CV call by both separate grids, and refit with the selected
 `lambda_1_row` and `lambda_1_col` as in Section 2. Source weights stay fixed in
-both workflows; selecting weights by CV is outside this tutorial.
+this fixed-weight example. For automatic weighting, use `source_weights = "auto"`:
+
+```{r automatic-weights, eval=FALSE}
+set.seed(815)
+cv_auto <- cv.learner(
+  sources, target, r = 3, source_weights = "auto",
+  lambda_1_all = c(0, 1, 10), lambda_2_all = c(0.1, 1),
+  n_folds = 3, step_size = 0.0003, control = list(max_iter = 2000))
+cv_auto$fold_source_weights
+cv_auto$source_weights
+fit_auto <- learner(
+  sources, target, r = cv_auto$r, source_weights = "auto",
+  lambda_1 = cv_auto$lambda_1_min, lambda_2 = cv_auto$lambda_2_min,
+  step_size = 0.0003, control = list(max_iter = 2000))
+```
+
+Automatic weights use the inverse sum of squared source-target projector
+distances (Equation 3 of McGrath et al., 2026), with a `1e-12` stabilizer.
+For missing target entries, the target SVD uses a zero-filled spectral pilot;
+missing entries remain excluded from the fitting loss. Each CV fold estimates
+weights using only its training entries, keeping them fixed across penalty
+candidates. The final fit recomputes weights from all observed target entries.
+`cv_auto$source_weights` also provides these full-data weights. The automatic
+rule is not a grid search over weights. The pilot may be sensitive to structured
+missingness, in which case supplied weights remain available.
 
 ## 4. Diagnostics and Sensitivity Checks
 

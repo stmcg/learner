@@ -16,7 +16,7 @@ cv.learner(
   control = list(),
   lambda_1_row_all = NULL,
   lambda_1_col_all = NULL,
-  source_weights = NULL
+  source_weights = "auto"
 )
 }
 \arguments{
@@ -47,8 +47,10 @@ combinations in parallel. Default is \code{1}, i.e., no parallelization.}
 penalties on the row and column factors. Supply both instead of
 \code{lambda_1_all}; all combinations with \code{lambda_2_all} are evaluated.}
 
-\item{source_weights}{Relative source weights, as in \code{\link{learner}}. The weights
-are not selected by cross-validation. Default is equal weights.}
+\item{source_weights}{Source weighting rule: \code{"auto"} (default),
+\code{"equal"}, or a numeric vector of nonnegative relative weights in source
+order. Explicit \code{NULL} retains equal weighting. Numeric weights are
+normalized to sum to one. See Details for automatic weighting.}
 }
 \value{
 A list containing:
@@ -77,6 +79,11 @@ Stopping codes have the same meaning as in \code{\link{learner}}:
 objective values. If a candidate fails with non-finite values, its remaining
 folds are skipped and have \code{NA} for updates and stopping codes.
 These diagnostics are saved during CV; no additional fits are performed.}
+\item{source_weights}{Normalized weights computed from all observed target
+entries, for use in the final refit.}
+\item{fold_source_weights}{Matrix of weights used during CV; rows are folds
+and columns follow source order.}
+\item{source_weight_method}{Weighting rule: auto, equal, or manual.}
 \item{n_observed}{Number of observed target entries, used to convert the
 summed validation errors to mean squared errors when plotting.}
 }
@@ -96,6 +103,11 @@ sets are based on the held out subsamples. The \code{\link{learner}} function is
 applied to each training data set. The held out error is computed by comparing
 the entries in the test data sets with those imputed from the LEARNER
 estimates. See McGrath et al. (2024) for further details.
+
+With automatic weights, each fold estimates weights using only its training
+target entries, then holds them fixed across penalty candidates. The weights
+returned in \code{source_weights} are recomputed using all observed target
+entries for the final refit. Numeric weights remain fixed across folds.
 
 With separate penalties, the procedure selects the row, column, and balance
 penalties together. Both modes can be used with multiple sources. Call
@@ -147,6 +159,10 @@ fit$convergence_criterion
 
 }
 \references{
+McGrath, S., Zhu, C., O'Dea, R., Guo, M. and Duan, R. (2026).
+LEARNER: A transfer learning method for low-rank matrix estimation.
+Statistics in Medicine, 45, e70669. doi:10.1002/sim.70669.
+
 McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
 }
 \seealso{
