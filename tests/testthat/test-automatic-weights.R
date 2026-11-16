@@ -92,3 +92,31 @@ test_that('automatic weighting does not change RNG and rejects invalid modes', {
     expect_error(dlearner(d$sources, d$target, 2, mode), 'source_weights')
   }
 })
+
+test_that('single-source weighting helper needs no target decomposition', {
+  d <- auto_fixture()
+  bases <- list(svd(d$sources[[1]], nu = 2, nv = 2))
+  # A single source must receive weight one even without observed target data;
+  # the helper should return before attempting a target SVD.
+  expect_identical(source_subspace_weights(bases, d$target * NA_real_, 2), 1)
+})
+
+test_that('CV kernel rejects incompatible fold-weight matrix dimensions', {
+  d <- auto_fixture()
+  call_kernel <- function(weights) {
+    cv_learner_cpp(
+      Y_source = d$sources, Y_target = d$target,
+      source_weights = c(.5, .5), row_grid = 1, col_grid = 1,
+      balance_grid = 1, step_size = .01, max_iter = 2L,
+      threshold = 0, n_cores = 1L, r = 2L, max_value = 10,
+      index_set = list(0:23, 24:47), relative = FALSE, window = 1L,
+      fold_source_weights = weights)
+  }
+  expect_error(call_kernel(matrix(.5, 1, 2)),
+               'fold_source_weights has incompatible dimensions', fixed = TRUE)
+  expect_error(call_kernel(matrix(1, 2, 1)),
+               'fold_source_weights has incompatible dimensions', fixed = TRUE)
+  expect_error(call_kernel(matrix(numeric(), 0, 2)),
+               'fold_source_weights has incompatible dimensions', fixed = TRUE)
+  expect_no_error(call_kernel(matrix(.5, 2, 2)))
+})
