@@ -4,7 +4,7 @@
 \alias{dlearner}
 \title{Direct projection transfer learning}
 \usage{
-dlearner(Y_source, Y_target, r, source_weights = NULL)
+dlearner(Y_source, Y_target, r, source_weights = "auto")
 }
 \arguments{
 \item{Y_source}{Matrix containing the source population data, with the same rows
@@ -17,13 +17,17 @@ are not allowed.}
 \item{r}{Rank of the knowledge graphs. If omitted, ScreeNOT (Donoho et al. 2023)
 is applied to the source population data to select the rank.}
 
-\item{source_weights}{Relative weights of the sources, in the order of
-\code{Y_source}. Default is equal weights.}
+\item{source_weights}{Source weighting rule: \code{"auto"} (default),
+\code{"equal"}, or a numeric vector of nonnegative relative weights in source
+order. Explicit \code{NULL} retains equal weighting. Numeric weights are
+normalized to sum to one. See Details for automatic weighting.}
 }
 \value{
 A list with the following components:
 \item{dlearner_estimate}{matrix containing the D-LEARNER estimate of the target population knowledge graph.}
 \item{r}{rank value used.}
+\item{source_weights}{Normalized source weights used for this fit.}
+\item{source_weight_method}{Weighting rule: auto, equal, or manual.}
 }
 \description{
 This function applies the Direct projection LatEnt spAce-based tRaNsfer
@@ -68,6 +72,19 @@ where \eqn{\hat U_k} and \eqn{\hat V_k} come from the truncated SVD of
 the \eqn{k}th source and the weights \eqn{w_k} are given by
 \code{source_weights}. If \code{r} is not specified, the rank is selected
 using the first source.
+
+\strong{Automatic source weights:}
+
+With \code{source_weights = "auto"}, weights follow Equation (3) of McGrath
+et al. (2026): \eqn{w_k \propto 1/(d_k+10^{-12})}, where
+\deqn{d_k=\|\hat U_k\hat U_k^\top-\hat U_0\hat U_0^\top\|_F^2+
+\|\hat V_k\hat V_k^\top-\hat V_0\hat V_0^\top\|_F^2.}
+All bases use rank \code{r}. The small constant stabilizes coincident spaces.
+A single source receives weight one. The same weights apply to both spaces.
+For an incomplete target, the spectral pilot replaces missing entries by zero
+solely for this SVD; the fitting loss still uses only observed entries.
+This pilot extends the complete-data rule and can be sensitive to structured
+missingness. Supply numeric weights or \code{"equal"} to bypass it.
 }
 \examples{
 res <- dlearner(Y_source = dat_highsim$Y_source,
@@ -82,6 +99,10 @@ dim(res_multi$dlearner_estimate)
 
 }
 \references{
+McGrath, S., Zhu, C., O'Dea, R., Guo, M. and Duan, R. (2026).
+LEARNER: A transfer learning method for low-rank matrix estimation.
+Statistics in Medicine, 45, e70669. doi:10.1002/sim.70669.
+
 Donoho, D., Gavish, M. and Romanov, E. (2023). \emph{ScreeNOT: Exact MSE-optimal singular value thresholding in correlated noise}. The Annals of Statistics, 51(1), pp.122-148.
 }
 \seealso{

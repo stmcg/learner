@@ -28,7 +28,7 @@ for (case_name in c('complete_common', 'complete_separate',
     case <- fixture$fit[[case_name]]
     actual <- do.call(learner, case$args)
     # Includes every estimated entry, every objective value, rank, and stop code.
-    expect_equal(actual, case$expected, tolerance = fixture$provenance$tolerance)
+    expect_equal(actual[names(case$expected)], case$expected, tolerance = fixture$provenance$tolerance)
   })
 }
 
@@ -48,6 +48,6 @@ for (case_name in c('complete', 'missing')) {
 test_that('multisource D-LEARNER matches the saved reference', {
   fixture <- reference_fixture()
   actual <- do.call(dlearner, fixture$direct$args)
-  expect_equal(actual, fixture$direct$expected,
+  expect_equal(actual[names(fixture$direct$expected)], fixture$direct$expected,
                tolerance = fixture$provenance$tolerance)
 })
