@@ -33,8 +33,8 @@ prepare_sources <- function(Y_source, Y_target, source_weights = NULL,
     mode <- source_weights
     source_weights <- rep(1, length(sources))
   } else if (is.null(source_weights)) {
-    # Explicit NULL retains the historical equal-weight behavior.
-    mode <- "equal"
+    # NULL uses the empirical subspace-distance rule.
+    mode <- "auto"
     source_weights <- rep(1, length(sources))
   }
   if (!is.numeric(source_weights) || length(source_weights) != length(sources) ||

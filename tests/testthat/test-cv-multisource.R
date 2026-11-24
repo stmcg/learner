@@ -62,7 +62,8 @@ test_that("source representations and normalized weights are consistent", {
   expect_equal(fit(d$a), fit(list(d$a, d$b), c(1, 0)), tolerance = 1e-10)
   expect_equal(fit(list(d$a, d$b), c(2, 1)),
                fit(list(d$a, d$b), c(2/3, 1/3)), tolerance = 1e-12)
-  expect_equal(fit(list(d$a, d$b)), fit(list(d$a, d$b), c(1, 1)), tolerance = 1e-12)
+  expect_equal(fit(list(d$a, d$b), c(.5, .5)),
+               fit(list(d$a, d$b), c(1, 1)), tolerance = 1e-12)
   expect_gt(max(abs(fit(list(d$a, d$b), c(1, 0))$learner_estimate -
                       fit(list(d$a, d$b), c(1, 3))$learner_estimate)), 1e-6)
 })

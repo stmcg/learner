@@ -16,7 +16,7 @@ cv.learner(
   control = list(),
   lambda_1_row_all = NULL,
   lambda_1_col_all = NULL,
-  source_weights = "auto"
+  source_weights = NULL
 )
 }
 \arguments{
@@ -47,10 +47,12 @@ combinations in parallel. Default is \code{1}, i.e., no parallelization.}
 penalties on the row and column factors. Supply both instead of
 \code{lambda_1_all}; all combinations with \code{lambda_2_all} are evaluated.}
 
-\item{source_weights}{Source weighting rule: \code{"auto"} (default),
-\code{"equal"}, or a numeric vector of nonnegative relative weights in source
-order. Explicit \code{NULL} retains equal weighting. Numeric weights are
-normalized to sum to one. See Details for automatic weighting.}
+\item{source_weights}{Optional numeric vector of nonnegative relative weights,
+with one value per source in list order and at least one positive value.
+The default, \code{NULL}, estimates weights from the source and target spaces.
+Numeric weights are normalized to sum to one; use equal values for equal
+weighting. The strings \code{"auto"} and \code{"equal"} remain supported for
+compatibility. See Details for the empirical weighting rule.}
 }
 \value{
 A list containing:
@@ -83,7 +85,8 @@ These diagnostics are saved during CV; no additional fits are performed.}
 entries, for use in the final refit.}
 \item{fold_source_weights}{Matrix of weights used during CV; rows are folds
 and columns follow source order.}
-\item{source_weight_method}{Weighting rule: auto, equal, or manual.}
+\item{source_weight_method}{Weighting rule: \code{"auto"} for empirical weights,
+\code{"equal"} for the compatibility option, or \code{"manual"} for numeric weights.}
 \item{n_observed}{Number of observed target entries, used to convert the
 summed validation errors to mean squared errors when plotting.}
 }
@@ -104,7 +107,7 @@ applied to each training data set. The held out error is computed by comparing
 the entries in the test data sets with those imputed from the LEARNER
 estimates. See McGrath et al. (2024) for further details.
 
-With automatic weights, each fold estimates weights using only its training
+With empirical weights, each fold estimates weights using only its training
 target entries, then holds them fixed across penalty candidates. The weights
 returned in \code{source_weights} are recomputed using all observed target
 entries for the final refit. Numeric weights remain fixed across folds.

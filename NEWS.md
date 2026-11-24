@@ -1,15 +1,4 @@
 ### learner version 1.1.0 (unreleased)
-* Multiple-source fitting now defaults to automatic inverse subspace-distance
-  weights (Equation 3 of McGrath et al., 2026). Use `source_weights = "equal"`
-  or explicit `NULL` for historical equal weights; numeric weights still work.
-  Single-source estimates are unchanged.
-* Automatic CV weights use training entries only and are cached per fold.
-  Results return `source_weights`, `source_weight_method`, and, for CV,
-  `fold_source_weights`. Full-data weights are recomputed for the final refit.
-  Missing entries are zero-filled only for the target spectral pilot.
-
-
-
 * Fix blank CV heatmaps in RStudio when followed by `plot_objective()` by
   avoiding explicit graphics-parameter changes in the objective plot. The plot
   now uses the current margins, so very small margins can cut off the title and
@@ -30,8 +19,9 @@
 * Use a sequential blue scale for CV heatmaps.
 * Reorganize the advanced tutorial around usage and show compact diagnostic outputs.
 
-* Add support for multiple source populations and optional source weights in
-  `learner()`, `dlearner()`, and `cv.learner()`.
+* Add multiple-source fitting in `learner()`, `dlearner()`, and `cv.learner()`:
+  `source_weights = NULL` now estimates empirical weights; supply numeric
+  weights (equal values for equal weighting) to choose a fixed combination.
 * Add `dat_multisource`, an example dataset with one target and two source
   populations with independently generated noise.
 * Add separate row- and column-space penalties in `learner()` and

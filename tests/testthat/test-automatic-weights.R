@@ -48,7 +48,7 @@ test_that('weights handle coincident, orthogonal, and full-rank spaces', {
   expect_equal(dlearner(list(a, b), a, 4)$source_weights, c(.5, .5))
   expect_equal(dlearner(a, a, 1)$source_weights, 1)
   expect_equal(dlearner(list(a, b), a, 1, 'equal')$source_weights, c(.5, .5))
-  expect_equal(dlearner(list(a, b), a, 1, NULL)$source_weights, c(.5, .5))
+  expect_equal(dlearner(list(a, b), a, 1, NULL)$source_weights, fit$source_weights)
   expect_equal(dlearner(list(a, b), a, 1, c(2, 1))$source_weights, c(2/3, 1/3))
   expect_equal(dlearner(list(b, a), a, 1)$source_weights, rev(fit$source_weights))
 })
@@ -119,4 +119,40 @@ test_that('CV kernel rejects incompatible fold-weight matrix dimensions', {
   expect_error(call_kernel(matrix(numeric(), 0, 2)),
                'fold_source_weights has incompatible dimensions', fixed = TRUE)
   expect_no_error(call_kernel(matrix(.5, 2, 2)))
+})
+
+
+test_that('NULL and omitted weights use the empirical rule in all entry points', {
+  d <- auto_fixture()
+  for (fun in list(learner, dlearner, cv.learner)) {
+    expect_null(formals(fun)$source_weights)
+  }
+  for (missing in c(FALSE, TRUE)) {
+    y <- d$target
+    if (missing) y[c(1, 9, 35)] <- NA
+    fit <- function(...) learner(d$sources, y, 2, 1, 1, .01,
+                                  control = list(max_iter = 4), ...)
+    expect_equal(fit(source_weights = NULL), fit())
+    expect_equal(fit(source_weights = NULL), fit(source_weights = 'auto'))
+    cv <- function(...) {
+      set.seed(92)
+      cv.learner(d$sources, y, 2, c(0, 1), c(.1, 1), .01,
+                  n_folds = 3, control = list(max_iter = 4), ...)
+    }
+    expect_equal(cv(source_weights = NULL), cv())
+    expect_equal(cv(source_weights = NULL), cv(source_weights = 'auto'))
+    expected <- reference_weights(d$sources, y, 2)
+    expect_equal(cv(source_weights = NULL)$source_weights, expected)
+    equal <- cv(source_weights = c(1, 1))
+    expect_equal(equal$source_weights, c(.5, .5))
+    expect_equal(equal$fold_source_weights, matrix(.5, 3, 2))
+    expect_equal(equal$mse_all, cv(source_weights = 'equal')$mse_all)
+    expect_equal(fit(source_weights = c(1, 1))$learner_estimate,
+                 fit(source_weights = 'equal')$learner_estimate)
+  }
+  direct <- function(...) dlearner(d$sources, d$target, 2, ...)
+  expect_equal(direct(source_weights = NULL), direct())
+  expect_equal(direct(source_weights = NULL), direct(source_weights = 'auto'))
+  expect_equal(direct(source_weights = c(1, 1))$dlearner_estimate,
+               direct(source_weights = 'equal')$dlearner_estimate)
 })

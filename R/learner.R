@@ -22,10 +22,12 @@
 #' @param lambda_1_row_all,lambda_1_col_all Candidate values for separate
 #' penalties on the row and column factors. Supply both instead of
 #' \code{lambda_1_all}; all combinations with \code{lambda_2_all} are evaluated.
-#' @param source_weights Source weighting rule: \code{"auto"} (default),
-#' \code{"equal"}, or a numeric vector of nonnegative relative weights in source
-#' order. Explicit \code{NULL} retains equal weighting. Numeric weights are
-#' normalized to sum to one. See Details for automatic weighting.
+#' @param source_weights Optional numeric vector of nonnegative relative weights,
+#' with one value per source in list order and at least one positive value.
+#' The default, \code{NULL}, estimates weights from the source and target spaces.
+#' Numeric weights are normalized to sum to one; use equal values for equal
+#' weighting. The strings \code{"auto"} and \code{"equal"} remain supported for
+#' compatibility. See Details for the empirical weighting rule.
 #'
 #' @details
 #' Given sets of candidate values of \eqn{\lambda_1} and \eqn{\lambda_2}, this
@@ -39,7 +41,7 @@
 #' the entries in the test data sets with those imputed from the LEARNER
 #' estimates. See McGrath et al. (2024) for further details.
 #'
-#' With automatic weights, each fold estimates weights using only its training
+#' With empirical weights, each fold estimates weights using only its training
 #' target entries, then holds them fixed across penalty candidates. The weights
 #' returned in \code{source_weights} are recomputed using all observed target
 #' entries for the final refit. Numeric weights remain fixed across folds.
@@ -85,7 +87,8 @@
 #' entries, for use in the final refit.}
 #' \item{fold_source_weights}{Matrix of weights used during CV; rows are folds
 #' and columns follow source order.}
-#' \item{source_weight_method}{Weighting rule: auto, equal, or manual.}
+#' \item{source_weight_method}{Weighting rule: \code{"auto"} for empirical weights,
+#' \code{"equal"} for the compatibility option, or \code{"manual"} for numeric weights.}
 #' \item{n_observed}{Number of observed target entries, used to convert the
 #' summed validation errors to mean squared errors when plotting.}
 #'
@@ -141,7 +144,7 @@
 cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
                        step_size, n_folds = 4, n_cores = 1, control = list(),
                        lambda_1_row_all = NULL, lambda_1_col_all = NULL,
-                       source_weights = "auto") {
+                       source_weights = NULL) {
   sources <- prepare_sources(Y_source, Y_target, source_weights)
   r <- resolve_rank(if (missing(r)) NULL else r, sources$matrices[[1]])
   control <- prepare_control(control, step_size)
@@ -269,10 +272,12 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' factor \eqn{U} and column factor \eqn{V}, respectively. Use these when the two
 #' sides should borrow different amounts of source information. Supply both
 #' instead of \code{lambda_1}; equal values reproduce the common penalty.
-#' @param source_weights Source weighting rule: \code{"auto"} (default),
-#' \code{"equal"}, or a numeric vector of nonnegative relative weights in source
-#' order. Explicit \code{NULL} retains equal weighting. Numeric weights are
-#' normalized to sum to one. See Details for automatic weighting.
+#' @param source_weights Optional numeric vector of nonnegative relative weights,
+#' with one value per source in list order and at least one positive value.
+#' The default, \code{NULL}, estimates weights from the source and target spaces.
+#' Numeric weights are normalized to sum to one; use equal values for equal
+#' weighting. The strings \code{"auto"} and \code{"equal"} remain supported for
+#' compatibility. See Details for the empirical weighting rule.
 #'
 #' @details
 #' \strong{Data and notation:}
@@ -318,9 +323,9 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' change from 0 to 0 counts as 0, and a change from 0 to anything else is never
 #' small.
 #'
-#' \strong{Automatic source weights:}
+#' \strong{Empirical source weights:}
 #'
-#' With \code{source_weights = "auto"}, weights follow Equation (3) of McGrath
+#' With \code{source_weights = NULL}, weights follow Equation (3) of McGrath
 #' et al. (2026): \eqn{w_k \propto 1/(d_k+10^{-12})}, where
 #' \deqn{d_k=\|\hat U_k\hat U_k^\top-\hat U_0\hat U_0^\top\|_F^2+
 #' \|\hat V_k\hat V_k^\top-\hat V_0\hat V_0^\top\|_F^2.}
@@ -329,7 +334,7 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' For an incomplete target, the spectral pilot replaces missing entries by zero
 #' solely for this SVD; the fitting loss still uses only observed entries.
 #' This pilot extends the complete-data rule and can be sensitive to structured
-#' missingness. Supply numeric weights or \code{"equal"} to bypass it.
+#' missingness. Supply numeric weights to choose a fixed combination.
 #'
 #' \strong{Extensions:}
 #'
@@ -363,7 +368,8 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' \item{convergence_criterion}{stopping code: \code{1}, the stopping rule in \code{control} was met; \code{2}, the iteration limit was reached; \code{3}, excessive objective growth or non-finite objective/factors were detected.}
 #' \item{r}{rank value used.}
 #' \item{source_weights}{Normalized source weights used for this fit.}
-#' \item{source_weight_method}{Weighting rule: auto, equal, or manual.}
+#' \item{source_weight_method}{Weighting rule: \code{"auto"} for empirical weights,
+#' \code{"equal"} for the compatibility option, or \code{"manual"} for numeric weights.}
 #'
 #' @references
 #' McGrath, S., Zhu, C., O'Dea, R., Guo, M. and Duan, R. (2026).
@@ -405,7 +411,7 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' @export
 learner <- function(Y_source, Y_target, r, lambda_1 = NULL, lambda_2, step_size,
                     control = list(), lambda_1_row = NULL, lambda_1_col = NULL,
-                    source_weights = "auto") {
+                    source_weights = NULL) {
   sources <- prepare_sources(Y_source, Y_target, source_weights)
   r <- resolve_rank(if (missing(r)) NULL else r, sources$matrices[[1]])
   control <- prepare_control(control, step_size)

@@ -14,7 +14,7 @@ learner(
   control = list(),
   lambda_1_row = NULL,
   lambda_1_col = NULL,
-  source_weights = "auto"
+  source_weights = NULL
 )
 }
 \arguments{
@@ -64,10 +64,12 @@ factor \eqn{U} and column factor \eqn{V}, respectively. Use these when the two
 sides should borrow different amounts of source information. Supply both
 instead of \code{lambda_1}; equal values reproduce the common penalty.}
 
-\item{source_weights}{Source weighting rule: \code{"auto"} (default),
-\code{"equal"}, or a numeric vector of nonnegative relative weights in source
-order. Explicit \code{NULL} retains equal weighting. Numeric weights are
-normalized to sum to one. See Details for automatic weighting.}
+\item{source_weights}{Optional numeric vector of nonnegative relative weights,
+with one value per source in list order and at least one positive value.
+The default, \code{NULL}, estimates weights from the source and target spaces.
+Numeric weights are normalized to sum to one; use equal values for equal
+weighting. The strings \code{"auto"} and \code{"equal"} remain supported for
+compatibility. See Details for the empirical weighting rule.}
 }
 \value{
 A list with the following elements:
@@ -76,7 +78,8 @@ A list with the following elements:
 \item{convergence_criterion}{stopping code: \code{1}, the stopping rule in \code{control} was met; \code{2}, the iteration limit was reached; \code{3}, excessive objective growth or non-finite objective/factors were detected.}
 \item{r}{rank value used.}
 \item{source_weights}{Normalized source weights used for this fit.}
-\item{source_weight_method}{Weighting rule: auto, equal, or manual.}
+\item{source_weight_method}{Weighting rule: \code{"auto"} for empirical weights,
+\code{"equal"} for the compatibility option, or \code{"manual"} for numeric weights.}
 }
 \description{
 This function applies the LatEnt spAce-based tRaNsfer lEaRning (LEARNER)
@@ -127,9 +130,9 @@ needs at least 6 recorded updates, and if \code{max_iter} is less than
 change from 0 to 0 counts as 0, and a change from 0 to anything else is never
 small.
 
-\strong{Automatic source weights:}
+\strong{Empirical source weights:}
 
-With \code{source_weights = "auto"}, weights follow Equation (3) of McGrath
+With \code{source_weights = NULL}, weights follow Equation (3) of McGrath
 et al. (2026): \eqn{w_k \propto 1/(d_k+10^{-12})}, where
 \deqn{d_k=\|\hat U_k\hat U_k^\top-\hat U_0\hat U_0^\top\|_F^2+
 \|\hat V_k\hat V_k^\top-\hat V_0\hat V_0^\top\|_F^2.}
@@ -138,7 +141,7 @@ A single source receives weight one. The same weights apply to both spaces.
 For an incomplete target, the spectral pilot replaces missing entries by zero
 solely for this SVD; the fitting loss still uses only observed entries.
 This pilot extends the complete-data rule and can be sensitive to structured
-missingness. Supply numeric weights or \code{"equal"} to bypass it.
+missingness. Supply numeric weights to choose a fixed combination.
 
 \strong{Extensions:}
 

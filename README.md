@@ -155,21 +155,3 @@ res_dlearner$dlearner_estimate[1:5, 1:5]
 
 For multiple sources, source weights, and separate row and column
 penalties, see the [advanced tutorial](vignettes/advanced-learner.Rmd).
-
-### Automatic source weights
-
-For multiple sources, `source_weights = "auto"` is the default in `learner()`,
-`cv.learner()`, and `dlearner()`. Weights are inversely proportional to the sum
-of squared source-target column- and row-projector distances, using Equation 3
-of McGrath et al. (2026), with a `1e-12` denominator stabilizer.
-
-CV recomputes weights from each fold's training target entries, holds them
-fixed over that fold's penalty grid, and reports them in `fold_source_weights`.
-The `source_weights` returned by CV are computed from all observed target
-entries for the final refit. Missing target values are zero-filled only for the
-spectral pilot used to obtain weights; the fitting loss ignores missing values.
-This pilot can be sensitive to structured missingness.
-
-Pass numeric weights to use a specified combination, or `"equal"` (also
-explicit `NULL`) to reproduce equal weighting. See
-`inst/examples/automatic-source-weights.R` for a complete CV and refit example.
