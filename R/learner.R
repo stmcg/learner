@@ -22,8 +22,12 @@
 #' @param lambda_1_row_all,lambda_1_col_all Candidate values for separate
 #' penalties on the row and column factors. Supply both instead of
 #' \code{lambda_1_all}; all combinations with \code{lambda_2_all} are evaluated.
-#' @param source_weights Relative source weights, as in \code{\link{learner}}. The weights
-#' are not selected by cross-validation. Default is equal weights.
+#' @param source_weights Optional numeric vector of nonnegative relative weights,
+#' with one value per source in list order and at least one positive value.
+#' The default, \code{NULL}, estimates weights from the source and target spaces.
+#' Numeric weights are normalized to sum to one; use equal values for equal
+#' weighting. The strings \code{"auto"} and \code{"equal"} remain supported for
+#' compatibility. See Details for the empirical weighting rule.
 #'
 #' @details
 #' Given sets of candidate values of \eqn{\lambda_1} and \eqn{\lambda_2}, this
@@ -36,6 +40,11 @@
 #' applied to each training data set. The held out error is computed by comparing
 #' the entries in the test data sets with those imputed from the LEARNER
 #' estimates. See McGrath et al. (2024) for further details.
+#'
+#' With empirical weights, each fold estimates weights using only its training
+#' target entries, then holds them fixed across penalty candidates. The weights
+#' returned in \code{source_weights} are recomputed using all observed target
+#' entries for the final refit. Numeric weights remain fixed across folds.
 #'
 #' With separate penalties, the procedure selects the row, column, and balance
 #' penalties together. Both modes can be used with multiple sources. Call
@@ -74,10 +83,20 @@
 #' objective values. If a candidate fails with non-finite values, its remaining
 #' folds are skipped and have \code{NA} for updates and stopping codes.
 #' These diagnostics are saved during CV; no additional fits are performed.}
+#' \item{source_weights}{Normalized weights computed from all observed target
+#' entries, for use in the final refit.}
+#' \item{fold_source_weights}{Matrix of weights used during CV; rows are folds
+#' and columns follow source order.}
+#' \item{source_weight_method}{Weighting rule: \code{"auto"} for empirical weights,
+#' \code{"equal"} for the compatibility option, or \code{"manual"} for numeric weights.}
 #' \item{n_observed}{Number of observed target entries, used to convert the
 #' summed validation errors to mean squared errors when plotting.}
 #'
 #' @references
+#' McGrath, S., Zhu, C., O'Dea, R., Guo, M. and Duan, R. (2026).
+#' LEARNER: A transfer learning method for low-rank matrix estimation.
+#' Statistics in Medicine, 45, e70669. doi:10.1002/sim.70669.
+#'
 #' McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
 #'
 #' @seealso
@@ -165,10 +184,20 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
     index_set[[fold]] <- indices[seq.int(start, end)]
   }
 
+  bases <- if (sources$mode == "auto" && length(sources$matrices) > 1L)
+    lapply(sources$matrices, svd, nu = r, nv = r) else NULL
+  fold_weights <- t(matrix(vapply(index_set, function(held_out) {
+    training <- Y_target
+    training[held_out + 1L] <- NA_real_
+    resolve_source_weights(sources, training, r, bases)
+  }, numeric(length(sources$matrices))), nrow = length(sources$matrices)))
+  final_weights <- resolve_source_weights(sources, Y_target, r, bases)
+
   cv_result <- cv_learner_cpp(sources$matrices, Y_target, sources$weights,
                            grid$row, grid$col, grid$balance, step_size,
                            control$max_iter, control$threshold, n_cores, r,
-                           control$max_value, index_set, control$stopping_rule == "relative", control$window)
+                           control$max_value, index_set, control$stopping_rule == "relative", control$window,
+                           fold_weights)
   scores <- cv_result$scores
   if (!any(is.finite(scores))) stop('No candidate produced finite validation errors.')
   if (any(!is.finite(scores))) warning('Some candidates produced non-finite validation errors and were excluded.')
@@ -186,13 +215,16 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
     return(list(lambda_1_min = grid$row[best], lambda_2_min = grid$balance[best],
                 mse_all = mse_all, r = r, lambda_1_all = lambda_1_all,
                 lambda_2_all = lambda_2_all, n_observed = n_indices,
-                cv_diagnostics = cv_diagnostics))
+                cv_diagnostics = cv_diagnostics, source_weights = final_weights,
+                fold_source_weights = fold_weights, source_weight_method = sources$mode))
   }
   list(lambda_1_min = NA_real_, lambda_2_min = grid$balance[best],
        lambda_1_row_min = grid$row[best], lambda_1_col_min = grid$col[best],
        mse_all = mse_all, r = r, lambda_1_row_all = lambda_1_row_all,
        lambda_1_col_all = lambda_1_col_all, lambda_2_all = lambda_2_all,
-       n_observed = n_indices, cv_diagnostics = cv_diagnostics)
+       n_observed = n_indices, cv_diagnostics = cv_diagnostics,
+       source_weights = final_weights, fold_source_weights = fold_weights,
+       source_weight_method = sources$mode)
 }
 
 #' Latent space-based transfer learning
@@ -240,8 +272,12 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' factor \eqn{U} and column factor \eqn{V}, respectively. Use these when the two
 #' sides should borrow different amounts of source information. Supply both
 #' instead of \code{lambda_1}; equal values reproduce the common penalty.
-#' @param source_weights Relative weights of the sources, in the order of
-#' \code{Y_source}. Default is equal weights.
+#' @param source_weights Optional numeric vector of nonnegative relative weights,
+#' with one value per source in list order and at least one positive value.
+#' The default, \code{NULL}, estimates weights from the source and target spaces.
+#' Numeric weights are normalized to sum to one; use equal values for equal
+#' weighting. The strings \code{"auto"} and \code{"equal"} remain supported for
+#' compatibility. See Details for the empirical weighting rule.
 #'
 #' @details
 #' \strong{Data and notation:}
@@ -287,6 +323,19 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' change from 0 to 0 counts as 0, and a change from 0 to anything else is never
 #' small.
 #'
+#' \strong{Empirical source weights:}
+#'
+#' With \code{source_weights = NULL}, weights follow Equation (3) of McGrath
+#' et al. (2026): \eqn{w_k \propto 1/(d_k+10^{-12})}, where
+#' \deqn{d_k=\|\hat U_k\hat U_k^\top-\hat U_0\hat U_0^\top\|_F^2+
+#' \|\hat V_k\hat V_k^\top-\hat V_0\hat V_0^\top\|_F^2.}
+#' All bases use rank \code{r}. The small constant stabilizes coincident spaces.
+#' A single source receives weight one. The same weights apply to both spaces.
+#' For an incomplete target, the spectral pilot replaces missing entries by zero
+#' solely for this SVD; the fitting loss still uses only observed entries.
+#' This pilot extends the complete-data rule and can be sensitive to structured
+#' missingness. Supply numeric weights to choose a fixed combination.
+#'
 #' \strong{Extensions:}
 #'
 #' Separate penalties \code{lambda_1_row} and \code{lambda_1_col} replace
@@ -318,8 +367,15 @@ cv.learner <- function(Y_source, Y_target, r, lambda_1_all = NULL, lambda_2_all,
 #' \item{objective_values}{numeric vector containing the values of the objective function at each iteration.}
 #' \item{convergence_criterion}{stopping code: \code{1}, the stopping rule in \code{control} was met; \code{2}, the iteration limit was reached; \code{3}, excessive objective growth or non-finite objective/factors were detected.}
 #' \item{r}{rank value used.}
+#' \item{source_weights}{Normalized source weights used for this fit.}
+#' \item{source_weight_method}{Weighting rule: \code{"auto"} for empirical weights,
+#' \code{"equal"} for the compatibility option, or \code{"manual"} for numeric weights.}
 #'
 #' @references
+#' McGrath, S., Zhu, C., O'Dea, R., Guo, M. and Duan, R. (2026).
+#' LEARNER: A transfer learning method for low-rank matrix estimation.
+#' Statistics in Medicine, 45, e70669. doi:10.1002/sim.70669.
+#'
 #' McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
 #'
 #' Donoho, D., Gavish, M. and Romanov, E. (2023). \emph{ScreeNOT: Exact MSE-optimal singular value thresholding in correlated noise}. The Annals of Statistics, 51(1), pp.122-148.
@@ -380,10 +436,13 @@ learner <- function(Y_source, Y_target, r, lambda_1 = NULL, lambda_2, step_size,
   }
   validate_space_penalty(lambda_2, 'lambda_2')
 
+  sources$weights <- resolve_source_weights(sources, Y_target, r)
   result <- learner_cpp(sources$matrices, Y_target, sources$weights, r,
                         lambda_1_row, lambda_1_col, lambda_2, step_size,
                         control$max_iter, control$threshold, control$max_value,
                         control$stopping_rule == "relative", control$window)
+  result$source_weights <- sources$weights
+  result$source_weight_method <- sources$mode
   return(result)
 }
 

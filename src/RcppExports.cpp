@@ -35,8 +35,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // cv_learner_cpp
-List cv_learner_cpp(const Rcpp::List& Y_source, const Eigen::MatrixXd& Y_target, const std::vector<double>& source_weights, const std::vector<double>& row_grid, const std::vector<double>& col_grid, const std::vector<double>& balance_grid, double step_size, int max_iter, double threshold, int n_cores, int r, double max_value, const std::vector<std::vector<int>>& index_set, bool relative, int window);
-RcppExport SEXP _learner_cv_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP source_weightsSEXP, SEXP row_gridSEXP, SEXP col_gridSEXP, SEXP balance_gridSEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP, SEXP n_coresSEXP, SEXP rSEXP, SEXP max_valueSEXP, SEXP index_setSEXP, SEXP relativeSEXP, SEXP windowSEXP) {
+List cv_learner_cpp(const Rcpp::List& Y_source, const Eigen::MatrixXd& Y_target, const std::vector<double>& source_weights, const std::vector<double>& row_grid, const std::vector<double>& col_grid, const std::vector<double>& balance_grid, double step_size, int max_iter, double threshold, int n_cores, int r, double max_value, const std::vector<std::vector<int>>& index_set, bool relative, int window, const Eigen::MatrixXd& fold_source_weights);
+RcppExport SEXP _learner_cv_learner_cpp(SEXP Y_sourceSEXP, SEXP Y_targetSEXP, SEXP source_weightsSEXP, SEXP row_gridSEXP, SEXP col_gridSEXP, SEXP balance_gridSEXP, SEXP step_sizeSEXP, SEXP max_iterSEXP, SEXP thresholdSEXP, SEXP n_coresSEXP, SEXP rSEXP, SEXP max_valueSEXP, SEXP index_setSEXP, SEXP relativeSEXP, SEXP windowSEXP, SEXP fold_source_weightsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -55,7 +55,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::vector<std::vector<int>>& >::type index_set(index_setSEXP);
     Rcpp::traits::input_parameter< bool >::type relative(relativeSEXP);
     Rcpp::traits::input_parameter< int >::type window(windowSEXP);
-    rcpp_result_gen = Rcpp::wrap(cv_learner_cpp(Y_source, Y_target, source_weights, row_grid, col_grid, balance_grid, step_size, max_iter, threshold, n_cores, r, max_value, index_set, relative, window));
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type fold_source_weights(fold_source_weightsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cv_learner_cpp(Y_source, Y_target, source_weights, row_grid, col_grid, balance_grid, step_size, max_iter, threshold, n_cores, r, max_value, index_set, relative, window, fold_source_weights));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -72,7 +73,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_learner_learner_cpp", (DL_FUNC) &_learner_learner_cpp, 13},
-    {"_learner_cv_learner_cpp", (DL_FUNC) &_learner_cv_learner_cpp, 15},
+    {"_learner_cv_learner_cpp", (DL_FUNC) &_learner_cv_learner_cpp, 16},
     {"_learner_omp_max_threads", (DL_FUNC) &_learner_omp_max_threads, 0},
     {NULL, NULL, 0}
 };

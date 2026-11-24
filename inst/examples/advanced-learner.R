@@ -104,6 +104,23 @@ fit_multi <- learner(
 dim(fit_multi$learner_estimate)
 fit_multi$convergence_criterion
 
+# empirical-weights-cv
+set.seed(815)
+cv_empirical <- cv.learner(
+  sources, target, r = 3,
+  lambda_1_all = c(0, 1, 10), lambda_2_all = c(0.1, 1),
+  n_folds = 3, step_size = 0.0003, control = list(max_iter = 2000))
+cv_empirical$source_weights
+
+# empirical-weights-refit
+fit_empirical <- learner(
+  sources, target, r = cv_empirical$r,
+  lambda_1 = cv_empirical$lambda_1_min,
+  lambda_2 = cv_empirical$lambda_2_min,
+  step_size = 0.0003, control = list(max_iter = 2000))
+fit_empirical$source_weights
+fit_empirical$convergence_criterion
+
 # grid-boundaries
 needed <- c("asym", "asym_space_grid", "asym_balance_grid",
             "cv_separate", "fit_separate", "cv_multi")

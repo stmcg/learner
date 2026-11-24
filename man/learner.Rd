@@ -64,8 +64,12 @@ factor \eqn{U} and column factor \eqn{V}, respectively. Use these when the two
 sides should borrow different amounts of source information. Supply both
 instead of \code{lambda_1}; equal values reproduce the common penalty.}
 
-\item{source_weights}{Relative weights of the sources, in the order of
-\code{Y_source}. Default is equal weights.}
+\item{source_weights}{Optional numeric vector of nonnegative relative weights,
+with one value per source in list order and at least one positive value.
+The default, \code{NULL}, estimates weights from the source and target spaces.
+Numeric weights are normalized to sum to one; use equal values for equal
+weighting. The strings \code{"auto"} and \code{"equal"} remain supported for
+compatibility. See Details for the empirical weighting rule.}
 }
 \value{
 A list with the following elements:
@@ -73,6 +77,9 @@ A list with the following elements:
 \item{objective_values}{numeric vector containing the values of the objective function at each iteration.}
 \item{convergence_criterion}{stopping code: \code{1}, the stopping rule in \code{control} was met; \code{2}, the iteration limit was reached; \code{3}, excessive objective growth or non-finite objective/factors were detected.}
 \item{r}{rank value used.}
+\item{source_weights}{Normalized source weights used for this fit.}
+\item{source_weight_method}{Weighting rule: \code{"auto"} for empirical weights,
+\code{"equal"} for the compatibility option, or \code{"manual"} for numeric weights.}
 }
 \description{
 This function applies the LatEnt spAce-based tRaNsfer lEaRning (LEARNER)
@@ -122,6 +129,19 @@ needs at least 6 recorded updates, and if \code{max_iter} is less than
 \code{window + 1} the stopping rule can never be met. With the relative rule, a
 change from 0 to 0 counts as 0, and a change from 0 to anything else is never
 small.
+
+\strong{Empirical source weights:}
+
+With \code{source_weights = NULL}, weights follow Equation (3) of McGrath
+et al. (2026): \eqn{w_k \propto 1/(d_k+10^{-12})}, where
+\deqn{d_k=\|\hat U_k\hat U_k^\top-\hat U_0\hat U_0^\top\|_F^2+
+\|\hat V_k\hat V_k^\top-\hat V_0\hat V_0^\top\|_F^2.}
+All bases use rank \code{r}. The small constant stabilizes coincident spaces.
+A single source receives weight one. The same weights apply to both spaces.
+For an incomplete target, the spectral pilot replaces missing entries by zero
+solely for this SVD; the fitting loss still uses only observed entries.
+This pilot extends the complete-data rule and can be sensitive to structured
+missingness. Supply numeric weights to choose a fixed combination.
 
 \strong{Extensions:}
 
@@ -174,6 +194,10 @@ res_multi$convergence_criterion
 
 }
 \references{
+McGrath, S., Zhu, C., O'Dea, R., Guo, M. and Duan, R. (2026).
+LEARNER: A transfer learning method for low-rank matrix estimation.
+Statistics in Medicine, 45, e70669. doi:10.1002/sim.70669.
+
 McGrath, S., Zhu, C,. Guo, M. and Duan, R. (2024). \emph{LEARNER: A transfer learning method for low-rank matrix estimation}. arXiv preprint	arXiv:2412.20605.
 
 Donoho, D., Gavish, M. and Romanov, E. (2023). \emph{ScreeNOT: Exact MSE-optimal singular value thresholding in correlated noise}. The Annals of Statistics, 51(1), pp.122-148.

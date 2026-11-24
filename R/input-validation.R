@@ -24,14 +24,26 @@ prepare_sources <- function(Y_source, Y_target, source_weights = NULL,
       stop('All source matrices and Y_target must have the same dimensions.')
     }
   }
-  if (is.null(source_weights)) source_weights <- rep(1, length(sources))
+  mode <- "manual"
+  if (is.character(source_weights)) {
+    if (length(source_weights) != 1L || is.na(source_weights) ||
+        !source_weights %in% c("auto", "equal")) {
+      stop("source_weights must be 'auto', 'equal', NULL, or numeric relative weights.")
+    }
+    mode <- source_weights
+    source_weights <- rep(1, length(sources))
+  } else if (is.null(source_weights)) {
+    # NULL uses the empirical subspace-distance rule.
+    mode <- "auto"
+    source_weights <- rep(1, length(sources))
+  }
   if (!is.numeric(source_weights) || length(source_weights) != length(sources) ||
       any(!is.finite(source_weights)) || any(source_weights < 0) ||
       !any(source_weights > 0)) {
     stop('source_weights must have one finite nonnegative value per source and a positive total.')
   }
   weights <- source_weights / max(source_weights)
-  list(matrices = sources, weights = weights / sum(weights))
+  list(matrices = sources, weights = weights / sum(weights), mode = mode)
 }
 
 resolve_rank <- function(r, source) {
@@ -106,4 +118,30 @@ prepare_control <- function(control, step_size) {
     stop('control$max_value must be a finite positive number.')
   }
   control
+}
+
+# Equation (3): inverse summed squared distances of row/column projectors.
+# Use thin bases to avoid allocating p-by-p or q-by-q projection matrices.
+source_subspace_weights <- function(bases, target, r) {
+  if (length(bases) == 1L) return(1)
+  # A spectral pilot for incomplete targets: only observed values enter the SVD.
+  # The inverse observation-fraction scaling would not change singular vectors.
+  target[is.na(target)] <- 0
+  pilot <- svd(target, nu = r, nv = r)
+  distances <- vapply(bases, function(b) {
+    du <- pilot$u - b$u %*% crossprod(b$u, pilot$u)
+    dv <- pilot$v - b$v %*% crossprod(b$v, pilot$v)
+    2 * (sum(du^2) + sum(dv^2))
+  }, numeric(1))
+  # Same 1e-12 stabilizer as learner-paper's multisource simulation helper.
+  inverse <- 1 / (distances + 1e-12)
+  unname(inverse / sum(inverse))
+}
+
+resolve_source_weights <- function(sources, target, r, bases = NULL) {
+  if (sources$mode != "auto" || length(sources$matrices) == 1L) {
+    return(sources$weights)
+  }
+  if (is.null(bases)) bases <- lapply(sources$matrices, svd, nu = r, nv = r)
+  source_subspace_weights(bases, target, r)
 }

@@ -267,9 +267,14 @@ weights <- c(0.7, 0.3)
 
 Supply sources as a list of matrices, with rows and columns in the same order
 as the target. The functions do not align them for you. Weights follow the list
-order and are normalized to sum to one; omitting them gives equal weights.
-Here we choose 0.7 for A and 0.3 for B as an example. CV does not select these
-weights.
+order and are normalized to sum to one. We first give A a weight of 0.7 and B a
+weight of 0.3 to illustrate how to specify a combination. These are chosen for
+this example, rather than estimated from the data. To give the two sources
+equal weight, use `weights <- c(1, 1)` instead. CV keeps supplied weights fixed.
+
+When no weights are supplied, the default `source_weights = NULL` estimates
+them from the source and target spaces. We show this option after the
+fixed-weight example below.
 
 ### Combine source-space information
 
@@ -361,8 +366,54 @@ fit_multi$convergence_criterion
 
 Multiple sources can also be combined with separate penalties: replace
 `lambda_1_all` in the CV call by both separate grids, and refit with the selected
-`lambda_1_row` and `lambda_1_col` as in Section 2. Source weights stay fixed in
-both workflows; selecting weights by CV is outside this tutorial.
+`lambda_1_row` and `lambda_1_col` as in Section 2. The weights remain fixed
+when supplied as a numeric vector.
+
+### Estimate source weights from the data
+
+We can also let the package choose the weights by leaving `source_weights`
+at its default, `NULL`. Sources whose estimated row and column spaces are
+closer to those of the target receive more weight. The rule follows Equation
+(3) of McGrath et al. (2026); see `?learner` for the formula.
+
+We use the same data and penalty grids as above. During CV, weights are
+estimated from the training entries of each fold, then kept fixed while the
+penalties are compared. The held-out entries are used to score the fits.
+
+```{r empirical-weights-cv}
+set.seed(815)
+cv_empirical <- cv.learner(
+  sources, target, r = 3,
+  lambda_1_all = c(0, 1, 10), lambda_2_all = c(0.1, 1),
+  n_folds = 3, step_size = 0.0003, control = list(max_iter = 2000))
+cv_empirical$source_weights
+```
+
+The two values follow the order of `sources` and sum to one. They use all
+observed target entries, ready for the final fit. To see the weights used in
+each CV fold, inspect `cv_empirical$fold_source_weights`.
+
+Next, refit with the selected penalties. Leaving `source_weights = NULL`
+uses the same empirical rule, now with all observed target entries:
+
+```{r empirical-weights-refit}
+fit_empirical <- learner(
+  sources, target, r = cv_empirical$r,
+  lambda_1 = cv_empirical$lambda_1_min,
+  lambda_2 = cv_empirical$lambda_2_min,
+  step_size = 0.0003, control = list(max_iter = 2000))
+fit_empirical$source_weights
+fit_empirical$convergence_criterion
+```
+
+`fit_empirical$source_weights` agrees with `cv_empirical$source_weights`.
+The stopping code describes the final fit, as in Section 2. D-LEARNER uses
+the same default weighting rule when given a list of sources.
+
+For an incomplete target, missing entries are temporarily replaced by zero
+when estimating the spaces used for weighting. They remain excluded from the
+fitting loss. If many entries are missing in a structured pattern, compare
+these weights with a chosen numeric combination, such as equal weights.
 
 ## 4. Diagnostics and Sensitivity Checks
 

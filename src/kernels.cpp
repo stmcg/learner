@@ -57,6 +57,7 @@ struct FitResult {
 
 FitResult learner_worker(const SourceSpaces &spaces,
                          const Eigen::MatrixXd &Y_target,
+                         const std::vector<double> &weights,
                          double lambda1_row, double lambda1_col, double lambda2,
                          double step_size, int max_iter, double threshold,
                          double max_value, bool relative, int window) {
@@ -72,8 +73,8 @@ FitResult learner_worker(const SourceSpaces &spaces,
       diff = diff.array().isNaN().select(Eigen::MatrixXd::Zero(diff.rows(), diff.cols()), diff);
     }
     obj_init = diff.squaredNorm() / perc_nonmissing +
-      lambda1_row * space_residual(spaces.u, spaces.weights, U).squaredNorm() +
-      lambda1_col * space_residual(spaces.v, spaces.weights, V).squaredNorm() +
+      lambda1_row * space_residual(spaces.u, weights, U).squaredNorm() +
+      lambda1_col * space_residual(spaces.v, weights, V).squaredNorm() +
       lambda2 * (U.transpose() * U - V.transpose() * V).squaredNorm();
   }
 
@@ -97,14 +98,14 @@ FitResult learner_worker(const SourceSpaces &spaces,
       adjusted_theta = adjusted_theta.array().isNaN().select(temp, adjusted_theta);
     }
 
-    Eigen::MatrixXd residual_u = space_residual(spaces.u, spaces.weights, U);
-    Eigen::MatrixXd residual_v = space_residual(spaces.v, spaces.weights, V);
+    Eigen::MatrixXd residual_u = space_residual(spaces.u, weights, U);
+    Eigen::MatrixXd residual_v = space_residual(spaces.v, weights, V);
     // A weighted average of projectors is generally not idempotent.
     // The derivative of ||A U||^2 is 2 A' A U; here A is symmetric.
     Eigen::MatrixXd penalty_u = spaces.u.size() == 1 ? residual_u :
-      space_residual(spaces.u, spaces.weights, residual_u);
+      space_residual(spaces.u, weights, residual_u);
     Eigen::MatrixXd penalty_v = spaces.v.size() == 1 ? residual_v :
-      space_residual(spaces.v, spaces.weights, residual_v);
+      space_residual(spaces.v, weights, residual_v);
     Eigen::MatrixXd grad_U = (2.0 / perc_nonmissing) * (U * V_tilde - adjusted_theta * V)
       + lambda1_row * 2 * penalty_u
       + lambda2 * 4 * U * (U_tilde - V_tilde);
@@ -127,8 +128,8 @@ FitResult learner_worker(const SourceSpaces &spaces,
         diff = diff.array().isNaN().select(Eigen::MatrixXd::Zero(diff.rows(), diff.cols()), diff);
       }
       obj = diff.squaredNorm() / perc_nonmissing +
-        lambda1_row * space_residual(spaces.u, spaces.weights, U).squaredNorm() +
-        lambda1_col * space_residual(spaces.v, spaces.weights, V).squaredNorm() +
+        lambda1_row * space_residual(spaces.u, weights, U).squaredNorm() +
+        lambda1_col * space_residual(spaces.v, weights, V).squaredNorm() +
         lambda2 * (U.transpose() * U - V.transpose() * V).squaredNorm();
     }
     obj_values.push_back(obj);
@@ -179,7 +180,7 @@ List learner_cpp(const Rcpp::List &Y_source, const Eigen::MatrixXd &Y_target,
                  double lambda1_row, double lambda1_col, double lambda2,
                  double step_size, int max_iter, double threshold, double max_value, bool relative, int window) {
   SourceSpaces spaces = prepare_spaces(Y_source, source_weights, r);
-  FitResult out = learner_worker(spaces, Y_target, lambda1_row, lambda1_col,
+  FitResult out = learner_worker(spaces, Y_target, source_weights, lambda1_row, lambda1_col,
                                  lambda2, step_size, max_iter, threshold, max_value, relative, window);
   return List::create(Named("learner_estimate") = out.estimate,
                       Named("objective_values") = out.objective,
@@ -197,12 +198,22 @@ List cv_learner_cpp(const Rcpp::List &Y_source,
                     const std::vector<double> &balance_grid,
                     double step_size, int max_iter, double threshold,
                     int n_cores, int r, double max_value,
-                    const std::vector<std::vector<int>> &index_set, bool relative, int window) {
+                    const std::vector<std::vector<int>> &index_set, bool relative, int window,
+                    const Eigen::MatrixXd &fold_source_weights) {
   SourceSpaces spaces = prepare_spaces(Y_source, source_weights, r);
   int p = Y_target.rows();
   int n_grid = row_grid.size();
   std::vector<double> scores(n_grid, 0.0);
   const int n_folds = index_set.size();
+  if (fold_source_weights.rows() != n_folds ||
+      fold_source_weights.cols() != Y_source.size()) {
+    stop("fold_source_weights has incompatible dimensions.");
+  }
+  std::vector<std::vector<double>> fold_weights(n_folds);
+  for (int f = 0; f < n_folds; ++f) {
+    for (int k = 0; k < fold_source_weights.cols(); ++k)
+      fold_weights[f].push_back(fold_source_weights(f, k));
+  }
   std::vector<int> stopping_codes(n_grid * n_folds, NA_INTEGER);
   std::vector<int> updates(n_grid * n_folds, NA_INTEGER);
 
@@ -213,7 +224,7 @@ List cv_learner_cpp(const Rcpp::List &Y_source,
       const auto &fold = index_set[f];
       Eigen::MatrixXd training = Y_target;
       for (int idx : fold) training(idx % p, idx / p) = std::numeric_limits<double>::quiet_NaN();
-      FitResult fit = learner_worker(spaces, training, row_grid[g], col_grid[g],
+      FitResult fit = learner_worker(spaces, training, fold_weights[f], row_grid[g], col_grid[g],
                                       balance_grid[g], step_size, max_iter, threshold, max_value, relative, window);
       const int diagnostic_index = g * n_folds + f;
       stopping_codes[diagnostic_index] = fit.criterion;
